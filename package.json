@@ -5,7 +5,8 @@
   "homepage": "https://github.com/tinokuptz/advanced-mtr",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "./scripts/run-dev.sh",
+    "dev": "NODE_ENV=development npx electron .",
+    "dev:win": "set NODE_ENV=development && powershell -ExecutionPolicy Bypass -File ./scripts/run-dev.ps1",
     "build": "./scripts/run-build.sh",
     "build:cross": "./scripts/run-build-cross.sh",
     "dist": "electron-builder",

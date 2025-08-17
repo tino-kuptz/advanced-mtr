@@ -131,7 +131,6 @@ const closeDetail = () => {
 }
 
 .hops-section {
-  background: #f8f9fa;
   border-radius: 8px;
 }
 

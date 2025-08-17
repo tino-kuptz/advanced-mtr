@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { exec } from 'child_process'
+import { exec, spawn } from 'child_process'
 import { promisify } from 'util'
 import { lookup } from 'dns'
 import * as dgram from 'dgram'
@@ -44,7 +44,7 @@ export class MtrService extends EventEmitter {
 
       // Phase 1: MTR für Routenbestimmung
       await this.performTraceroute()
-      
+
       // Phase 2: Kontinuierliches Pingen aller Hops
       await this.startContinuousPinging()
     } catch (error) {
@@ -55,7 +55,7 @@ export class MtrService extends EventEmitter {
 
   async stopMtr(): Promise<void> {
     this.isRunning = false
-    
+
     if (this.pingInterval) {
       clearInterval(this.pingInterval)
       this.pingInterval = null
@@ -72,7 +72,7 @@ export class MtrService extends EventEmitter {
     return this.hops.get(hopNumber)
   }
 
-  /**
+    /**
    * Führt Traceroute aus um die Route zu bestimmen
    */
   private async performTraceroute(): Promise<void> {
@@ -85,90 +85,135 @@ export class MtrService extends EventEmitter {
       phase: 'mtr'
     })
 
-    let consecutiveFailures = 0
-    const maxConsecutiveFailures = 3
-
-    for (let ttl = 1; ttl <= this.config.maxHops; ttl++) {
+    // Look up multiple hops in parallel (up to 15 at a time)
+    const batchSize = 15
+    const maxHops = this.config.maxHops
+    
+    for (let startTtl = 1; startTtl <= maxHops; startTtl += batchSize) {
       if (!this.isRunning) break
-
-      try {
-        const hopIp = await this.tracerouteHop(ttl)
+      
+      const endTtl = Math.min(startTtl + batchSize - 1, maxHops)
+      console.log(`Traceroute batch: hops ${startTtl} to ${endTtl}`)
+      
+      // Create array of TTLs for this batch
+      const ttlBatch = Array.from({ length: endTtl - startTtl + 1 }, (_, i) => startTtl + i)
+      
+             // Execute all hops in this batch in parallel, but process them as they complete
+       const hopPromises = ttlBatch.map(async (ttl) => {
+         try {
+           const hopIp = await this.tracerouteHop(ttl)
+           return { ttl, hopIp, success: true }
+         } catch (error) {
+           console.error(`Error in traceroute hop ${ttl}:`, error)
+           return { ttl, hopIp: null, success: false }
+         }
+       })
+       
+               // Process hops as they complete, but maintain order
+        let targetReached = false
+        let consecutiveFailures = 0
+        const completedHops = new Set<number>()
+        const pendingHops = new Map<number, any>() // Store completed but not yet emitted hops
         
-        if (hopIp) {
-          consecutiveFailures = 0 // Reset failure counter
+        while (completedHops.size < hopPromises.length && !targetReached && this.isRunning) {
+          // Wait for the next hop to complete
+          const result = await Promise.race(
+            hopPromises.map((promise, index) => 
+              promise.then(result => ({ ...result, originalIndex: index }))
+            ).filter((_, index) => !completedHops.has(ttlBatch[index]))
+          )
           
-          const hop = new MtrHop(ttl, hopIp)
-          this.hops.set(ttl, hop)
+          completedHops.add(result.ttl)
           
-          // Event-Listener für Hop-Updates hinzufügen
-          hop.on('ping-updated', async () => {
-            const updatedHop = await hop.toApi()
-            this.emit('hop-updated', updatedHop)
-          })
-          
-          hop.on('hostname-updated', async () => {
-            const updatedHop = await hop.toApi()
-            this.emit('hop-updated', updatedHop)
-          })
-          
-          hop.on('reachability-updated', async () => {
-            const updatedHop = await hop.toApi()
-            this.emit('hop-updated', updatedHop)
-          })
-          
-          // Hop sofort emittieren (ohne Hostname)
-          this.emit('hop-found', await hop.toApi())
-          
-          // Hostname asynchron auflösen (nicht-blockierend)
-          setTimeout(async () => {
-            try {
-              const hostname = await this.resolveHostname(hopIp)
-              if (hostname) {
-                console.log(`Setting hostname for ${hopIp}: ${hostname}`)
-                hop.setHostname(hostname)
-                // Hop mit Hostname erneut emittieren
-                const updatedHop = await hop.toApi()
-                this.emit('hop-updated', updatedHop)
+          if (result.success && result.hopIp) {
+            consecutiveFailures = 0 // Reset failure counter
+            
+            const hop = new MtrHop(result.ttl, result.hopIp)
+            this.hops.set(result.ttl, hop)
+            
+            // Event-Listener für Hop-Updates hinzufügen
+            hop.on('ping-updated', async () => {
+              const updatedHop = await hop.toApi()
+              this.emit('hop-updated', updatedHop)
+            })
+            
+            hop.on('hostname-updated', async () => {
+              const updatedHop = await hop.toApi()
+              this.emit('hop-updated', updatedHop)
+            })
+            
+            hop.on('reachability-updated', async () => {
+              const updatedHop = await hop.toApi()
+              this.emit('hop-updated', updatedHop)
+            })
+            
+            // Store the hop for ordered emission
+            pendingHops.set(result.ttl, { hop, result })
+            
+            // Hostname asynchron auflösen (nicht-blockierend)
+            setTimeout(async () => {
+              try {
+                const hostname = await this.resolveHostname(result.hopIp)
+                if (hostname) {
+                  console.log(`Setting hostname for ${result.hopIp}: ${hostname}`)
+                  hop.setHostname(hostname)
+                  // Hop mit Hostname erneut emittieren
+                  const updatedHop = await hop.toApi()
+                  this.emit('hop-updated', updatedHop)
+                }
+              } catch (error) {
+                console.warn(`Could not resolve hostname for ${result.hopIp}:`, error)
               }
-            } catch (error) {
-              console.warn(`Could not resolve hostname for ${hopIp}:`, error)
+            }, 100) // Kleine Verzögerung für bessere Performance
+            
+            // Wenn wir das Ziel erreicht haben, können wir aufhören
+            if (result.hopIp === this.config.target) {
+              console.log(`Reached target ${this.config.target} at hop ${result.ttl}`)
+              targetReached = true
+              break
             }
-          }, 100) // Kleine Verzögerung für bessere Performance
-          
-          // Wenn wir das Ziel erreicht haben, können wir aufhören
-          if (hopIp === this.config.target) {
-            console.log(`Reached target ${this.config.target} at hop ${ttl}`)
-            break
-          }
-        } else {
-          consecutiveFailures++
-          console.log(`Hop ${ttl} failed, consecutive failures: ${consecutiveFailures}`)
-          
-          // Wenn zu viele aufeinanderfolgende Fehler, stoppe die Traceroute
-          if (consecutiveFailures >= maxConsecutiveFailures) {
-            console.log(`Stopping traceroute due to ${consecutiveFailures} consecutive failures`)
-            break
+            
+            this.emit('progress', {
+              currentHop: result.ttl,
+              maxHops: this.config.maxHops,
+              currentIp: result.hopIp,
+              phase: 'mtr'
+            })
+          } else {
+            consecutiveFailures++
+            console.log(`Hop ${result.ttl} failed, consecutive failures: ${consecutiveFailures}`)
+            
+            this.emit('progress', {
+              currentHop: result.ttl,
+              maxHops: this.config.maxHops,
+              currentIp: 'unknown',
+              phase: 'mtr'
+            })
           }
         }
-
-        this.emit('progress', {
-          currentHop: ttl,
-          maxHops: this.config.maxHops,
-          currentIp: hopIp || 'unknown',
-          phase: 'mtr'
-        })
-
-        // Kleine Pause zwischen Hops
-        await this.delay(100)
-      } catch (error) {
-        console.error(`Error in traceroute hop ${ttl}:`, error)
-        consecutiveFailures++
         
-        if (consecutiveFailures >= maxConsecutiveFailures) {
-          console.log(`Stopping traceroute due to ${consecutiveFailures} consecutive errors`)
-          break
+        // Hops nur in der richtigen Reihenfolge emittieren
+        for (let ttl = startTtl; ttl <= endTtl; ttl++) {
+          const pendingHop = pendingHops.get(ttl)
+          if (pendingHop) {
+            // Emit hop in correct order
+            this.emit('hop-found', await pendingHop.hop.toApi())
+          }
         }
+      
+      // Wenn das Ziel erreicht wurde oder zu viele aufeinanderfolgende Fehler, stoppe
+      if (targetReached) {
+        console.log('Target reached, stopping traceroute')
+        break
       }
+      
+      if (consecutiveFailures >= 3) {
+        console.log(`Stopping traceroute due to ${consecutiveFailures} consecutive failures`)
+        break
+      }
+      
+      // Kleine Pause zwischen Batches um Netzwerküberlastung zu vermeiden
+      await this.delay(200)
     }
   }
 
@@ -191,10 +236,26 @@ export class MtrService extends EventEmitter {
     // Fallback auf Systembefehle
     const isWindows = process.platform === 'win32'
     if (isWindows) {
-      return this.tracerouteHopWindows(ttl)
+      try {
+        const windowsResult = await this.tracerouteHopWindows(ttl)
+        if (windowsResult) {
+          return windowsResult
+        }
+      } catch (error) {
+        console.log(`Windows traceroute failed for hop ${ttl}:`, error)
+      }
     } else {
-      return this.tracerouteHopUnix(ttl)
+      try {
+        const unixResult = await this.tracerouteHopUnix(ttl)
+        if (unixResult) {
+          return unixResult
+        }
+      } catch (error) {
+        console.log(`Unix traceroute failed for hop ${ttl}:`, error)
+      }
     }
+
+    return null
   }
 
   /**
@@ -204,37 +265,108 @@ export class MtrService extends EventEmitter {
     if (!this.config) return null
 
     try {
-      // Verwende kürzere Timeouts für Windows
-      const timeoutMs = Math.min(this.config.timeout, 2000) // Max 2 Sekunden für Windows
+      // Verwende kürzere Timeouts für Windows und erhöhe sie etwas
+      const timeoutMs = Math.min(this.config.timeout, 15000) // Max 15 Sekunden für Windows
       const command = `tracert -h ${ttl} -w ${timeoutMs} -d ${this.config.target}`
-      
+
       console.log(`Executing Windows traceroute command: ${command}`)
-      const { stdout } = await execAsync(command, { timeout: timeoutMs + 1000 })
-      
-      console.log(`Windows traceroute output for hop ${ttl}:`, stdout)
-      
-      // Parse Windows tracert output
-      const lines = stdout.split('\n').filter(line => line.trim() !== '')
-      
-      for (const line of lines) {
-        // Windows tracert format: "  1    <1 ms    <1 ms    <1 ms  192.168.1.1"
-        // Oder: "  1    1 ms    <1 ms    <1 ms  192.168.1.1"
-        // Oder: "  1    1ms    1ms    1ms  192.168.1.1"
-        const hopMatch = line.match(/^\s*(\d+)\s+.+?\s+(\d+\.\d+\.\d+\.\d+)/)
-        
-        if (hopMatch) {
-          const hopNumber = parseInt(hopMatch[1])
-          
-          if (hopNumber === ttl) {
-            const ip = hopMatch[2]
-            console.log(`Found IP for hop ${ttl}: ${ip}`)
-            return ip
+
+      return new Promise((resolve) => {
+        const tracert = spawn('tracert', ['-h', ttl.toString(), '-w', timeoutMs.toString(), '-d', this.config!.target], {
+          windowsHide: true
+        })
+
+        let stdout = ''
+        let stderr = ''
+
+        tracert.stdout.on('data', (data: Buffer) => {
+          stdout += data.toString()
+        })
+
+        tracert.stderr.on('data', (data: Buffer) => {
+          stderr += data.toString()
+        })
+
+                 tracert.on('close', (code: number) => {
+           console.log(`Windows traceroute output for hop ${ttl}:`, stdout)
+
+          if (code !== 0 && stderr) {
+            console.warn(`Windows tracert stderr for hop ${ttl}:`, stderr)
           }
-        }
-      }
-      
-      console.log(`No IP found for hop ${ttl}`)
-      return null
+
+          // Parse Windows tracert output
+          const lines = stdout.split('\n').filter(line => line.trim() !== '')
+
+          for (const line of lines) {
+            // Windows tracert format: "  1    <1 ms    <1 ms    <1 ms  192.168.1.1"
+            // Oder: "  1    1 ms    <1 ms    <1 ms  192.168.1.1"
+            // Oder: "  1    1ms    1ms    1ms  192.168.1.1"
+            // Verbesserte Regex für verschiedene Formate
+            const hopMatch = line.match(/^\s*(\d+)\s+(?:[<]?\d+\s*ms\s*){1,3}\s+(\d+\.\d+\.\d+\.\d+)/)
+
+            if (hopMatch) {
+              const hopNumber = parseInt(hopMatch[1])
+
+              if (hopNumber === ttl) {
+                const ip = hopMatch[2]
+                console.log(`Found IP for hop ${ttl}: ${ip}`)
+                resolve(ip)
+                return
+              }
+            }
+
+            // Alternative format für Windows tracert mit verschiedenen Locales
+            const hopMatchAlt = line.match(/^\s*(\d+)\s+.*?(\d+\.\d+\.\d+\.\d+)/)
+            if (hopMatchAlt) {
+              const hopNumber = parseInt(hopMatchAlt[1])
+
+              if (hopNumber === ttl) {
+                const ip = hopMatchAlt[2]
+                console.log(`Found IP for hop ${ttl} (alt format): ${ip}`)
+                resolve(ip)
+                return
+              }
+            }
+          }
+
+          // If we didn't find the specific hop, try to find any hop in the output
+          // This handles cases where tracert shows multiple hops but we're looking for a specific one
+          for (const line of lines) {
+            const anyHopMatch = line.match(/^\s*(\d+)\s+.*?(\d+\.\d+\.\d+\.\d+)/)
+            if (anyHopMatch) {
+              const hopNumber = parseInt(anyHopMatch[1])
+              const ip = anyHopMatch[2]
+
+              // If this is the hop we're looking for, return it
+              if (hopNumber === ttl) {
+                console.log(`Found IP for hop ${ttl} (fallback): ${ip}`)
+                resolve(ip)
+                return
+              }
+
+              // If we found a higher hop number, we've gone past our target
+              if (hopNumber > ttl) {
+                break
+              }
+            }
+          }
+
+          console.log(`No IP found for hop ${ttl}`)
+          resolve(null)
+        })
+
+                 tracert.on('error', (error: Error) => {
+           console.warn(`Windows tracert error for hop ${ttl}:`, error)
+           resolve(null)
+         })
+
+        // Handle process exit
+        tracert.on('exit', (code: number, signal: string) => {
+          if (signal === 'SIGTERM') {
+            console.warn(`Windows tracert killed for hop ${ttl}`)
+          }
+        })
+      })
     } catch (error) {
       console.warn(`Windows traceroute hop ${ttl} failed:`, error)
       return null
@@ -249,17 +381,18 @@ export class MtrService extends EventEmitter {
 
     try {
       console.log(`Native traceroute for hop ${ttl} to ${this.config.target}`)
-      
+
       // Verwende UDP-Socket für TTL-basierte Traceroute
       return new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          console.log(`Native traceroute timeout for hop ${ttl}`)
-          resolve(null)
-        }, this.config!.timeout)
-
         // Erstelle UDP-Socket
         const socket = dgram.createSocket('udp4')
-        
+
+        const timeout = setTimeout(() => {
+          console.log(`Native traceroute timeout for hop ${ttl}`)
+          socket.close()
+          resolve(null)
+        }, Math.min(this.config!.timeout, 3000)) // Kürzerer Timeout für native Traceroute
+
         // Event-Handler für ICMP-Nachrichten (Time Exceeded)
         socket.on('message', (msg, rinfo) => {
           // Prüfe ob es eine ICMP Time Exceeded Nachricht ist (Type 11)
@@ -280,11 +413,11 @@ export class MtrService extends EventEmitter {
 
         // Setze TTL und sende UDP-Paket
         socket.setTTL(ttl)
-        
+
         // Sende UDP-Paket an einen hohen Port (unwahrscheinlich offen)
         const message = Buffer.from('TRACEROUTE')
         const port = 33434 + ttl // Standard traceroute Port-Bereich
-        
+
         socket.send(message, port, this.config!.target, (err) => {
           if (err) {
             console.warn(`UDP send error for hop ${ttl}:`, err)
@@ -308,22 +441,22 @@ export class MtrService extends EventEmitter {
 
     try {
       const command = `traceroute -n -w 1 -q ${this.config.probesPerHop} -m ${ttl} ${this.config.target}`
-      
+
       console.log(`Executing Unix traceroute command: ${command}`)
       const { stdout } = await execAsync(command, { timeout: this.config.timeout })
-      
+
       console.log(`Unix traceroute output for hop ${ttl}:`, stdout)
-      
+
       // Parse Unix traceroute output
       const lines = stdout.split('\n').filter(line => line.trim() !== '')
-      
+
       for (const line of lines) {
         // Unix/Linux/macOS traceroute format: " 1  192.168.1.1  1.234 ms  1.123 ms  1.345 ms"
         const hopMatch = line.match(/^\s*(\d+)\s+(.+)$/)
-        
+
         if (hopMatch) {
           const hopNumber = parseInt(hopMatch[1])
-          
+
           if (hopNumber === ttl) {
             const hopData = hopMatch[2]
             const ipMatch = hopData.match(/(\d+\.\d+\.\d+\.\d+)/)
@@ -335,7 +468,7 @@ export class MtrService extends EventEmitter {
           }
         }
       }
-      
+
       console.log(`No IP found for hop ${ttl}`)
       return null
     } catch (error) {
@@ -367,7 +500,7 @@ export class MtrService extends EventEmitter {
       })
     } catch (error) {
       console.warn(`DNS resolution failed for ${ip}:`, error)
-      
+
       // Fallback: Versuche mit externem DNS-Server
       try {
         const fallbackHostname = await this.resolveHostnameWithExternalDns(ip)
@@ -378,7 +511,7 @@ export class MtrService extends EventEmitter {
       } catch (fallbackError) {
         console.warn(`Fallback DNS resolution failed for ${ip}:`, fallbackError)
       }
-      
+
       return null
     }
   }
@@ -390,9 +523,9 @@ export class MtrService extends EventEmitter {
     try {
       const command = `nslookup ${ip} 8.8.8.8`
       const { stdout } = await execAsync(command, { timeout: 3000 })
-      
+
       console.log(`nslookup output for ${ip}:`, stdout)
-      
+
       // Parse nslookup output
       const lines = stdout.split('\n')
       for (const line of lines) {
@@ -444,7 +577,7 @@ export class MtrService extends EventEmitter {
   private isValidIpAddress(ip: string): boolean {
     const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
     const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/
-    
+
     return ipv4Regex.test(ip) || ipv6Regex.test(ip)
   }
 
@@ -471,11 +604,11 @@ export class MtrService extends EventEmitter {
       const pingPromises = Array.from(this.hops.values()).map(async (hop) => {
         const sentTimestamp = Date.now()
         const targetIp = hop.getIp()
-        
+
         try {
           const responseTime = await this.pingHost(targetIp)
           const responseTimestamp = Date.now()
-          
+
           const pingResult: PingResult = {
             sentTimestamp,
             targetIp,
@@ -483,10 +616,10 @@ export class MtrService extends EventEmitter {
             responseTime,
             isSuccessful: responseTime !== null
           }
-          
+
           this.pingHistory.push(pingResult)
           hop.addPingResult(responseTime)
-          
+
           this.emit('ping-result', pingResult)
         } catch (error) {
           const pingResult: PingResult = {
@@ -496,10 +629,10 @@ export class MtrService extends EventEmitter {
             responseTime: null,
             isSuccessful: false
           }
-          
+
           this.pingHistory.push(pingResult)
           hop.addPingResult(null)
-          
+
           this.emit('ping-result', pingResult)
         }
       })
@@ -517,22 +650,28 @@ export class MtrService extends EventEmitter {
     // Platform-specific ping command
     const isWindows = process.platform === 'win32'
     const timeoutSeconds = Math.ceil(this.config.timeout / 1000)
-    
-    const command = isWindows 
+
+    const command = isWindows
       ? `ping -n 1 -w ${timeoutSeconds * 1000} ${ip}`
       : `ping -c 1 -W ${timeoutSeconds} ${ip}`
-    
+
     try {
       const startTime = Date.now()
-      const { stdout } = await execAsync(command, { timeout: this.config.timeout })
+      const { stdout } = await execAsync(command, { timeout: this.config.timeout + 1000 })
       const endTime = Date.now()
-      
+
       // Parse ping output für response time (platform-specific)
       let match: RegExpMatchArray | null = null
-      
+
       if (isWindows) {
-        // Windows ping format: "Zeit=1ms"
+        // Windows ping format: "Zeit=1ms" or "time=1ms"
         match = stdout.match(/Zeit=(\d+)ms|time=(\d+)ms/i)
+        if (match) {
+          return parseInt(match[1] || match[2])
+        }
+
+        // Alternative Windows format: "time<1ms"
+        match = stdout.match(/Zeit<(\d+)ms|time<(\d+)ms/i)
         if (match) {
           return parseInt(match[1] || match[2])
         }
@@ -543,10 +682,11 @@ export class MtrService extends EventEmitter {
           return parseFloat(match[1])
         }
       }
-      
+
       // Fallback: use measured time if parsing fails
       return endTime - startTime
     } catch (error) {
+      console.warn(`Ping failed for ${ip}:`, error)
       return null // Timeout oder Fehler
     }
   }
