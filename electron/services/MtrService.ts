@@ -2,6 +2,8 @@ import { EventEmitter } from 'events'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { lookup } from 'dns'
+import * as dgram from 'dgram'
+import * as net from 'net'
 import { MtrHop } from '../models/MtrHop'
 import type { MtrConfig, MtrResults, PingResult, Progress } from '../../src/types'
 
@@ -83,6 +85,9 @@ export class MtrService extends EventEmitter {
       phase: 'mtr'
     })
 
+    let consecutiveFailures = 0
+    const maxConsecutiveFailures = 3
+
     for (let ttl = 1; ttl <= this.config.maxHops; ttl++) {
       if (!this.isRunning) break
 
@@ -90,6 +95,8 @@ export class MtrService extends EventEmitter {
         const hopIp = await this.tracerouteHop(ttl)
         
         if (hopIp) {
+          consecutiveFailures = 0 // Reset failure counter
+          
           const hop = new MtrHop(ttl, hopIp)
           this.hops.set(ttl, hop)
           
@@ -130,6 +137,16 @@ export class MtrService extends EventEmitter {
           
           // Wenn wir das Ziel erreicht haben, können wir aufhören
           if (hopIp === this.config.target) {
+            console.log(`Reached target ${this.config.target} at hop ${ttl}`)
+            break
+          }
+        } else {
+          consecutiveFailures++
+          console.log(`Hop ${ttl} failed, consecutive failures: ${consecutiveFailures}`)
+          
+          // Wenn zu viele aufeinanderfolgende Fehler, stoppe die Traceroute
+          if (consecutiveFailures >= maxConsecutiveFailures) {
+            console.log(`Stopping traceroute due to ${consecutiveFailures} consecutive failures`)
             break
           }
         }
@@ -145,6 +162,12 @@ export class MtrService extends EventEmitter {
         await this.delay(100)
       } catch (error) {
         console.error(`Error in traceroute hop ${ttl}:`, error)
+        consecutiveFailures++
+        
+        if (consecutiveFailures >= maxConsecutiveFailures) {
+          console.log(`Stopping traceroute due to ${consecutiveFailures} consecutive errors`)
+          break
+        }
       }
     }
   }
@@ -155,53 +178,168 @@ export class MtrService extends EventEmitter {
   private async tracerouteHop(ttl: number): Promise<string | null> {
     if (!this.config) return null
 
-    // Platform-specific traceroute command
-    const isWindows = process.platform === 'win32'
-    const command = isWindows 
-      ? `tracert -h ${ttl} -w ${this.config.timeout} ${this.config.target}`
-      : `traceroute -n -w 1 -q ${this.config.probesPerHop} -m ${ttl} ${this.config.target}`
-    
+    // Versuche native Traceroute zuerst, fallback auf Systembefehle
     try {
-      const { stdout } = await execAsync(command, { timeout: this.config.timeout })
+      const nativeResult = await this.tracerouteHopNative(ttl)
+      if (nativeResult) {
+        return nativeResult
+      }
+    } catch (error) {
+      console.log(`Native traceroute failed for hop ${ttl}, falling back to system command`)
+    }
+
+    // Fallback auf Systembefehle
+    const isWindows = process.platform === 'win32'
+    if (isWindows) {
+      return this.tracerouteHopWindows(ttl)
+    } else {
+      return this.tracerouteHopUnix(ttl)
+    }
+  }
+
+  /**
+   * Windows-spezifische Traceroute-Implementierung
+   */
+  private async tracerouteHopWindows(ttl: number): Promise<string | null> {
+    if (!this.config) return null
+
+    try {
+      // Verwende kürzere Timeouts für Windows
+      const timeoutMs = Math.min(this.config.timeout, 2000) // Max 2 Sekunden für Windows
+      const command = `tracert -h ${ttl} -w ${timeoutMs} -d ${this.config.target}`
       
-      // Parse traceroute output
+      console.log(`Executing Windows traceroute command: ${command}`)
+      const { stdout } = await execAsync(command, { timeout: timeoutMs + 1000 })
+      
+      console.log(`Windows traceroute output for hop ${ttl}:`, stdout)
+      
+      // Parse Windows tracert output
       const lines = stdout.split('\n').filter(line => line.trim() !== '')
       
-      // Suche nach der Zeile mit dem gewünschten Hop
       for (const line of lines) {
-        let hopMatch: RegExpMatchArray | null = null
-        
-        if (isWindows) {
-          // Windows tracert format: "  1    <1 ms    <1 ms    <1 ms  192.168.1.1"
-          hopMatch = line.match(/^\s*(\d+)\s+.+?\s+(\d+\.\d+\.\d+\.\d+)/)
-        } else {
-          // Unix/Linux/macOS traceroute format: " 1  192.168.1.1  1.234 ms  1.123 ms  1.345 ms"
-          hopMatch = line.match(/^\s*(\d+)\s+(.+)$/)
-        }
+        // Windows tracert format: "  1    <1 ms    <1 ms    <1 ms  192.168.1.1"
+        // Oder: "  1    1 ms    <1 ms    <1 ms  192.168.1.1"
+        // Oder: "  1    1ms    1ms    1ms  192.168.1.1"
+        const hopMatch = line.match(/^\s*(\d+)\s+.+?\s+(\d+\.\d+\.\d+\.\d+)/)
         
         if (hopMatch) {
           const hopNumber = parseInt(hopMatch[1])
           
           if (hopNumber === ttl) {
-            if (isWindows) {
-              // Windows: IP is in the second group
-              return hopMatch[2]
-            } else {
-              // Unix: extract IP from the second group
-              const hopData = hopMatch[2]
-              const ipMatch = hopData.match(/(\d+\.\d+\.\d+\.\d+)/)
-              if (ipMatch && !hopData.includes('*')) {
-                return ipMatch[1]
-              }
-            }
-            break
+            const ip = hopMatch[2]
+            console.log(`Found IP for hop ${ttl}: ${ip}`)
+            return ip
           }
         }
       }
       
+      console.log(`No IP found for hop ${ttl}`)
       return null
     } catch (error) {
-      console.warn(`Traceroute hop ${ttl} failed:`, error)
+      console.warn(`Windows traceroute hop ${ttl} failed:`, error)
+      return null
+    }
+  }
+
+  /**
+   * Native Traceroute-Implementierung mit UDP-Sockets
+   */
+  private async tracerouteHopNative(ttl: number): Promise<string | null> {
+    if (!this.config) return null
+
+    try {
+      console.log(`Native traceroute for hop ${ttl} to ${this.config.target}`)
+      
+      // Verwende UDP-Socket für TTL-basierte Traceroute
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log(`Native traceroute timeout for hop ${ttl}`)
+          resolve(null)
+        }, this.config!.timeout)
+
+        // Erstelle UDP-Socket
+        const socket = dgram.createSocket('udp4')
+        
+        // Event-Handler für ICMP-Nachrichten (Time Exceeded)
+        socket.on('message', (msg, rinfo) => {
+          // Prüfe ob es eine ICMP Time Exceeded Nachricht ist (Type 11)
+          if (msg.length >= 8 && msg[0] === 11) {
+            console.log(`Native traceroute found hop ${ttl}: ${rinfo.address}`)
+            clearTimeout(timeout)
+            socket.close()
+            resolve(rinfo.address)
+          }
+        })
+
+        socket.on('error', (err) => {
+          console.log(`UDP socket error for hop ${ttl}:`, err.message)
+          clearTimeout(timeout)
+          socket.close()
+          resolve(null)
+        })
+
+        // Setze TTL und sende UDP-Paket
+        socket.setTTL(ttl)
+        
+        // Sende UDP-Paket an einen hohen Port (unwahrscheinlich offen)
+        const message = Buffer.from('TRACEROUTE')
+        const port = 33434 + ttl // Standard traceroute Port-Bereich
+        
+        socket.send(message, port, this.config!.target, (err) => {
+          if (err) {
+            console.warn(`UDP send error for hop ${ttl}:`, err)
+            clearTimeout(timeout)
+            socket.close()
+            resolve(null)
+          }
+        })
+      })
+    } catch (error) {
+      console.warn(`Native traceroute hop ${ttl} failed:`, error)
+      return null
+    }
+  }
+
+  /**
+   * Unix/Linux/macOS-spezifische Traceroute-Implementierung
+   */
+  private async tracerouteHopUnix(ttl: number): Promise<string | null> {
+    if (!this.config) return null
+
+    try {
+      const command = `traceroute -n -w 1 -q ${this.config.probesPerHop} -m ${ttl} ${this.config.target}`
+      
+      console.log(`Executing Unix traceroute command: ${command}`)
+      const { stdout } = await execAsync(command, { timeout: this.config.timeout })
+      
+      console.log(`Unix traceroute output for hop ${ttl}:`, stdout)
+      
+      // Parse Unix traceroute output
+      const lines = stdout.split('\n').filter(line => line.trim() !== '')
+      
+      for (const line of lines) {
+        // Unix/Linux/macOS traceroute format: " 1  192.168.1.1  1.234 ms  1.123 ms  1.345 ms"
+        const hopMatch = line.match(/^\s*(\d+)\s+(.+)$/)
+        
+        if (hopMatch) {
+          const hopNumber = parseInt(hopMatch[1])
+          
+          if (hopNumber === ttl) {
+            const hopData = hopMatch[2]
+            const ipMatch = hopData.match(/(\d+\.\d+\.\d+\.\d+)/)
+            if (ipMatch && !hopData.includes('*')) {
+              const ip = ipMatch[1]
+              console.log(`Found IP for hop ${ttl}: ${ip}`)
+              return ip
+            }
+          }
+        }
+      }
+      
+      console.log(`No IP found for hop ${ttl}`)
+      return null
+    } catch (error) {
+      console.warn(`Unix traceroute hop ${ttl} failed:`, error)
       return null
     }
   }
