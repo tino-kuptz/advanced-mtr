@@ -15,6 +15,7 @@
       <div v-if="mtrResults.hops.length === 0" class="no-results">
         <p>Noch keine MTR-Ergebnisse verfügbar.</p>
         <p>Geben Sie eine IP-Adresse oder Domain ein und starten Sie den MTR.</p>
+        <p style="opacity: 0.5;">Der erste Scan kann bis zu 2 Minuten dauern. Dies ist normal.</p>
       </div>
 
       <div v-else class="results-container">

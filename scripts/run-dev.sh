@@ -78,7 +78,7 @@ fi
 
 # Starte Electron
 print_status "Starting Electron..."
-NODE_ENV=development electron . &
+NODE_ENV=development npx electron . &
 ELECTRON_PID=$!
 
 # Cleanup-Funktion beim Beenden
