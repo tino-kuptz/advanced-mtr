@@ -1,0 +1,269 @@
+import { app, BrowserWindow, ipcMain, Menu, dialog } from 'electron'
+import { join } from 'path'
+import { MtrService } from './services/MtrService'
+import { ExportService } from './services/ExportService'
+
+let mainWindow: BrowserWindow | null = null
+let mtrService: MtrService | null = null
+let currentMtrData: {
+  config: any
+  hops: Map<number, any>
+  pingHistory: any[]
+} | null = null
+
+function createMenu() {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'Datei',
+      submenu: [
+        {
+          label: 'MTR speichern',
+          accelerator: 'CmdOrCtrl+S',
+          click: async () => {
+            if (!currentMtrData) {
+              dialog.showMessageBox(mainWindow!, {
+                type: 'info',
+                title: 'Keine Daten',
+                message: 'Es sind keine MTR-Daten zum Speichern verfügbar.'
+              })
+              return
+            }
+
+            const result = await dialog.showSaveDialog(mainWindow!, {
+              title: 'MTR-Daten speichern',
+              defaultPath: `mtr-${currentMtrData.config.target}-${new Date().toISOString().split('T')[0]}.mtr`,
+              filters: [
+                { name: 'MTR-Dateien', extensions: ['mtr'] },
+                { name: 'Alle Dateien', extensions: ['*'] }
+              ]
+            })
+
+            if (!result.canceled && result.filePath) {
+              try {
+                ExportService.exportToFile(
+                  result.filePath,
+                  currentMtrData.config,
+                  currentMtrData.hops,
+                  currentMtrData.pingHistory
+                )
+                dialog.showMessageBox(mainWindow!, {
+                  type: 'info',
+                  title: 'Erfolgreich gespeichert',
+                  message: `MTR-Daten wurden erfolgreich in ${result.filePath} gespeichert.`
+                })
+              } catch (error) {
+                dialog.showErrorBox('Fehler beim Speichern', `Fehler: ${error.message}`)
+              }
+            }
+          }
+        },
+        {
+          label: 'MTR laden',
+          accelerator: 'CmdOrCtrl+O',
+          click: async () => {
+            const result = await dialog.showOpenDialog(mainWindow!, {
+              title: 'MTR-Datei öffnen',
+              filters: [
+                { name: 'MTR-Dateien', extensions: ['mtr'] },
+                { name: 'Alle Dateien', extensions: ['*'] }
+              ],
+              properties: ['openFile']
+            })
+
+            if (!result.canceled && result.filePaths.length > 0) {
+              const filePath = result.filePaths[0]
+              
+              try {
+                if (!ExportService.validateFile(filePath)) {
+                  dialog.showErrorBox('Ungültige Datei', 'Die ausgewählte Datei ist keine gültige MTR-Datei.')
+                  return
+                }
+
+                const importedData = ExportService.importFromFile(filePath)
+                currentMtrData = importedData
+                
+                // Daten an das Frontend senden
+                mainWindow?.webContents.send('mtr-data-imported', {
+                  config: importedData.config,
+                  hops: Array.from(importedData.hops.values()).map(hop => ({
+                    hopNumber: hop.getHopNumber(),
+                    ip: hop.getIp(),
+                    hostname: hop.getHostname()
+                  })),
+                  pingHistory: importedData.pingHistory
+                })
+
+                dialog.showMessageBox(mainWindow!, {
+                  type: 'info',
+                  title: 'Erfolgreich geladen',
+                  message: `MTR-Daten wurden erfolgreich aus ${filePath} geladen.`
+                })
+              } catch (error) {
+                dialog.showErrorBox('Fehler beim Laden', `Fehler: ${error.message}`)
+              }
+            }
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Beenden',
+          accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
+          click: () => {
+            app.quit()
+          }
+        }
+      ]
+    },
+    {
+      label: 'Bearbeiten',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' }
+      ]
+    },
+    {
+      label: 'Ansicht',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    }
+  ]
+
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+}
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1020,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: join(__dirname, 'preload.js')
+    },
+    show: false
+  })
+
+  // Menü erstellen
+  createMenu()
+
+  // Content Security Policy setzen
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:* ws://localhost:*;"
+        ]
+      }
+    })
+  })
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show()
+  })
+
+  // Im Entwicklungsmodus laden wir von localhost:5173
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.webContents.openDevTools()
+  } else {
+    mainWindow.loadFile(join(__dirname, '../dist/index.html'))
+  }
+}
+
+app.whenReady().then(createWindow)
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow()
+  }
+})
+
+// IPC Handler für MTR
+ipcMain.handle('start-mtr', async (event, mtrConfig) => {
+  try {
+    mtrService = new MtrService()
+    
+    // Aktuelle MTR-Daten initialisieren
+    currentMtrData = {
+      config: mtrConfig,
+      hops: new Map(),
+      pingHistory: []
+    }
+    
+    // Event-Handler für MTR-Updates
+    mtrService.on('hop-found', async (hop: any) => {
+      // Hop zu den aktuellen Daten hinzufügen (als MtrHop-Instanz)
+      if (currentMtrData) {
+        // Finde die ursprüngliche MtrHop-Instanz aus dem MtrService
+        const originalHop = mtrService?.getHop(hop.hopNumber)
+        if (originalHop) {
+          currentMtrData.hops.set(hop.hopNumber, originalHop)
+        }
+      }
+      mainWindow?.webContents.send('hop-found', hop)
+    })
+    
+    mtrService.on('hop-updated', async (hop: any) => {
+      // Hop in den aktuellen Daten aktualisieren (als MtrHop-Instanz)
+      if (currentMtrData) {
+        // Finde die ursprüngliche MtrHop-Instanz aus dem MtrService
+        const originalHop = mtrService?.getHop(hop.hopNumber)
+        if (originalHop) {
+          currentMtrData.hops.set(hop.hopNumber, originalHop)
+        }
+      }
+      mainWindow?.webContents.send('hop-updated', hop)
+    })
+    
+    mtrService.on('ping-result', (pingResult: any) => {
+      // Ping-Ergebnis zu den aktuellen Daten hinzufügen
+      if (currentMtrData) {
+        currentMtrData.pingHistory.push(pingResult)
+      }
+      mainWindow?.webContents.send('ping-result', pingResult)
+    })
+    
+    mtrService.on('progress', (progress: any) => {
+      mainWindow?.webContents.send('mtr-progress', progress)
+    })
+    
+    mtrService.on('mtr-complete', () => {
+      mainWindow?.webContents.send('mtr-complete')
+    })
+    
+    await mtrService.startMtr(mtrConfig)
+    return { success: true }
+  } catch (error) {
+    console.error('MTR error:', error)
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('stop-mtr', async () => {
+  if (mtrService) {
+    await mtrService.stopMtr()
+    mtrService = null
+  }
+  return { success: true }
+})

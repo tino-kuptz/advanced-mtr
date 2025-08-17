@@ -1,0 +1,48 @@
+{
+  "name": "advanced-mtr",
+  "version": "1.0.0",
+  "description": "Advanced MTR Tool mit Vue.js und Electron",
+  "homepage": "https://github.com/tinokuptz/advanced-mtr",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "./scripts/run-dev.sh",
+    "build": "./scripts/run-build.sh",
+    "build:cross": "./scripts/run-build-cross.sh",
+    "dist": "electron-builder",
+    "build:electron": "node build.js",
+    "vite": "vite"
+  },
+  "keywords": [
+    "mtr",
+    "traceroute",
+    "ping",
+    "network-analysis",
+    "electron",
+    "vue"
+  ],
+  "author": "Tino Kuptz <tino@example.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron/notarize": "^3.0.2",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.0.0",
+    "@vitejs/plugin-vue": "^4.0.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^10.0.0",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.0.0",
+    "esbuild": "^0.25.9",
+    "fs-extra": "^11.3.1",
+    "typescript": "^5.0.0",
+    "vite": "^4.0.0",
+    "vue": "^3.0.0",
+    "vue-tsc": "^3.0.5",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "apexcharts": "^5.3.3",
+    "net": "^1.0.0",
+    "ping": "^0.4.4",
+    "vue3-apexcharts": "^1.8.0"
+  }
+}
