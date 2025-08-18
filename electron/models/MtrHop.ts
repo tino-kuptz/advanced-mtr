@@ -15,6 +15,8 @@ export interface AggregatedData {
   failedPings: number
   totalPings: number
   hasAnyTimeout: boolean
+  minResponseTime: number | null
+  maxResponseTime: number | null
 }
 
 export class MtrHop extends EventEmitter {
@@ -121,9 +123,15 @@ export class MtrHop extends EventEmitter {
       const hasAnyTimeout = failedPings.length > 0
 
       let averageResponseTime: number | null = null
+      let minResponseTime: number | null = null
+      let maxResponseTime: number | null = null
+
       if (successfulPings.length > 0) {
-        const totalResponseTime = successfulPings.reduce((sum, ping) => sum + (ping.responseTime || 0), 0)
+        const successfulTimes = successfulPings.map(p => (p.responseTime || 0))
+        const totalResponseTime = successfulTimes.reduce((sum, t) => sum + t, 0)
         averageResponseTime = totalResponseTime / successfulPings.length
+        minResponseTime = Math.min(...successfulTimes)
+        maxResponseTime = Math.max(...successfulTimes)
       }
 
       return {
@@ -132,7 +140,9 @@ export class MtrHop extends EventEmitter {
         successfulPings: successfulPings.length,
         failedPings: failedPings.length,
         totalPings: pings.length,
-        hasAnyTimeout
+        hasAnyTimeout,
+        minResponseTime,
+        maxResponseTime
       }
     })
   }

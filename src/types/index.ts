@@ -50,6 +50,10 @@ export interface AggregatedData {
   totalPings: number
   /** Gibt an, ob es Timeouts im Intervall gab */
   hasAnyTimeout: boolean
+  /** Kleinste Antwortzeit im Intervall */
+  minResponseTime: number | null
+  /** Größte Antwortzeit im Intervall */
+  maxResponseTime: number | null
 }
 
 /**

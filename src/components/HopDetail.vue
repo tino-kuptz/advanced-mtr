@@ -52,17 +52,16 @@
         <!-- Chart View -->
         <PingChart 
           v-if="viewMode === 'chart'"
-          :hop-number="hop.hopNumber"
-          :hop-ip="hop.ip"
+          :aggregated-data="aggregatedData"
           :selected-interval="selectedInterval"
         />
         
         <!-- Table View -->
         <PingTable 
           v-else
-          :hop-number="hop.hopNumber"
-          :hop-ip="hop.ip"
+          :aggregated-data="aggregatedData"
           :selected-interval="selectedInterval"
+          :hop-ip="hop.ip"
         />
       </div>
     </div>
@@ -72,8 +71,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, nextTick } from 'vue'
-import type { MtrHop, PingResult } from '../types'
+import { computed, ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
+import type { MtrHop, AggregatedData } from '../types'
 import PingChart from './PingChart.vue'
 import PingTable from './PingTable.vue'
 
@@ -102,23 +101,72 @@ const chartContainer = ref<HTMLElement>()
 const viewMode = ref<'chart' | 'table'>('chart')
 
 /** Ausgewähltes Zeitintervall */
-const selectedInterval = ref<'second' | 'minute' | '5min' | '15min' | '30min' | 'hour' | '2hour'>('minute')
+const selectedInterval = ref<'second' | 'minute' | '5min' | '15min' | '30min' | 'hour' | '2hour'>('second')
+
+/** Aggregierte Daten für diesen Hop */
+const aggregatedData = ref<AggregatedData[]>([])
+const loading = ref(false)
+
+/**
+ * Lädt die aggregierten Daten für diesen Hop
+ */
+const loadAggregatedData = async () => {
+  try {
+    loading.value = true
+    const result = await window.electronAPI.getHopAggregatedData(props.hop.hopNumber, selectedInterval.value)
+    
+    if (result.success) {
+      aggregatedData.value = result.data || []
+    } else {
+      console.error('Failed to load aggregated data:', result.error)
+      aggregatedData.value = []
+    }
+  } catch (error) {
+    console.error('Error loading aggregated data:', error)
+    aggregatedData.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 /**
  * Aktualisiert das Zeitintervall
  */
 const updateInterval = () => {
-  // Das Intervall wird automatisch an die Kind-Komponenten weitergegeben
+  loadAggregatedData()
 }
 
+// Reagiere auch auf v-model Änderungen (Sicherheit neben @change)
+watch(selectedInterval, () => {
+  loadAggregatedData()
+})
 
+/**
+ * Automatische Aktualisierung jede Sekunde
+ */
+let updateTimer: NodeJS.Timeout | null = null
 
 /**
  * Lifecycle-Hook: Wird beim Mounten der Komponente ausgeführt
  */
 onMounted(async () => {
   await nextTick()
-  // Hier könnte man zusätzliche Chart-Initialisierung machen
+  // Initiale Daten laden
+  loadAggregatedData()
+  
+  // Automatische Aktualisierung jede Sekunde für alle Intervalle
+  updateTimer = setInterval(() => {
+    loadAggregatedData()
+  }, 1000)
+})
+
+/**
+ * Lifecycle-Hook: Wird beim Unmounten der Komponente ausgeführt
+ */
+onUnmounted(() => {
+  if (updateTimer) {
+    clearInterval(updateTimer)
+  }
 })
 </script>
 

@@ -85,140 +85,245 @@ export class MtrService extends EventEmitter {
       phase: 'mtr'
     })
 
-    // Look up multiple hops in parallel (up to 15 at a time)
-    const batchSize = 15
-    const maxHops = this.config.maxHops
-    
-    for (let startTtl = 1; startTtl <= maxHops; startTtl += batchSize) {
-      if (!this.isRunning) break
-      
-      const endTtl = Math.min(startTtl + batchSize - 1, maxHops)
-      console.log(`Traceroute batch: hops ${startTtl} to ${endTtl}`)
-      
-      // Create array of TTLs for this batch
-      const ttlBatch = Array.from({ length: endTtl - startTtl + 1 }, (_, i) => startTtl + i)
-      
-             // Execute all hops in this batch in parallel, but process them as they complete
-       const hopPromises = ttlBatch.map(async (ttl) => {
-         try {
-           const hopIp = await this.tracerouteHop(ttl)
-           return { ttl, hopIp, success: true }
-         } catch (error) {
-           console.error(`Error in traceroute hop ${ttl}:`, error)
-           return { ttl, hopIp: null, success: false }
-         }
-       })
-       
-               // Process hops as they complete, but maintain order
-        let targetReached = false
-        let consecutiveFailures = 0
-        const completedHops = new Set<number>()
-        const pendingHops = new Map<number, any>() // Store completed but not yet emitted hops
-        
-        while (completedHops.size < hopPromises.length && !targetReached && this.isRunning) {
-          // Wait for the next hop to complete
-          const result = await Promise.race(
-            hopPromises.map((promise, index) => 
-              promise.then(result => ({ ...result, originalIndex: index }))
-            ).filter((_, index) => !completedHops.has(ttlBatch[index]))
-          )
-          
-          completedHops.add(result.ttl)
-          
-          if (result.success && result.hopIp) {
-            consecutiveFailures = 0 // Reset failure counter
-            
-            const hop = new MtrHop(result.ttl, result.hopIp)
-            this.hops.set(result.ttl, hop)
-            
-            // Event-Listener für Hop-Updates hinzufügen
-            hop.on('ping-updated', async () => {
-              const updatedHop = await hop.toApi()
-              this.emit('hop-updated', updatedHop)
-            })
-            
-            hop.on('hostname-updated', async () => {
-              const updatedHop = await hop.toApi()
-              this.emit('hop-updated', updatedHop)
-            })
-            
-            hop.on('reachability-updated', async () => {
-              const updatedHop = await hop.toApi()
-              this.emit('hop-updated', updatedHop)
-            })
-            
-            // Store the hop for ordered emission
-            pendingHops.set(result.ttl, { hop, result })
-            
-            // Hostname asynchron auflösen (nicht-blockierend)
-            setTimeout(async () => {
-              try {
-                const hostname = await this.resolveHostname(result.hopIp)
-                if (hostname) {
-                  console.log(`Setting hostname for ${result.hopIp}: ${hostname}`)
-                  hop.setHostname(hostname)
-                  // Hop mit Hostname erneut emittieren
-                  const updatedHop = await hop.toApi()
-                  this.emit('hop-updated', updatedHop)
-                }
-              } catch (error) {
-                console.warn(`Could not resolve hostname for ${result.hopIp}:`, error)
-              }
-            }, 100) // Kleine Verzögerung für bessere Performance
-            
-            // Wenn wir das Ziel erreicht haben, können wir aufhören
-            if (result.hopIp === this.config.target) {
-              console.log(`Reached target ${this.config.target} at hop ${result.ttl}`)
-              targetReached = true
-              break
-            }
-            
-            this.emit('progress', {
-              currentHop: result.ttl,
-              maxHops: this.config.maxHops,
-              currentIp: result.hopIp,
-              phase: 'mtr'
-            })
-          } else {
-            consecutiveFailures++
-            console.log(`Hop ${result.ttl} failed, consecutive failures: ${consecutiveFailures}`)
-            
-            this.emit('progress', {
-              currentHop: result.ttl,
-              maxHops: this.config.maxHops,
-              currentIp: 'unknown',
-              phase: 'mtr'
-            })
-          }
-        }
-        
-        // Hops nur in der richtigen Reihenfolge emittieren
-        for (let ttl = startTtl; ttl <= endTtl; ttl++) {
-          const pendingHop = pendingHops.get(ttl)
-          if (pendingHop) {
-            // Emit hop in correct order
-            this.emit('hop-found', await pendingHop.hop.toApi())
-          }
-        }
-      
-      // Wenn das Ziel erreicht wurde oder zu viele aufeinanderfolgende Fehler, stoppe
-      if (targetReached) {
-        console.log('Target reached, stopping traceroute')
-        break
+    console.log('Starting optimized traceroute...')
+
+    // Native Traceroute ist auf macOS problematisch (EBADF Fehler), daher direkt System-Befehl verwenden
+    console.log('Using system traceroute (native traceroute disabled due to EBADF issues on macOS)')
+
+    // Fallback auf System-Traceroute
+    try {
+      const systemHops = await this.performSystemTraceroute()
+      if (systemHops.length > 0) {
+        console.log(`System traceroute found ${systemHops.length} hops`)
+        await this.processTracerouteResults(systemHops)
+        return
       }
-      
-      if (consecutiveFailures >= 3) {
-        console.log(`Stopping traceroute due to ${consecutiveFailures} consecutive failures`)
-        break
-      }
-      
-      // Kleine Pause zwischen Batches um Netzwerküberlastung zu vermeiden
-      await this.delay(200)
+    } catch (error) {
+      console.error('System traceroute failed:', error)
+      throw new Error(`Traceroute failed: ${error.message}`)
     }
   }
 
   /**
-   * Führt Traceroute für einen einzelnen Hop aus
+   * Führt einen einzigen System-Traceroute-Befehl aus und parst alle Hops
+   */
+  private async performSystemTraceroute(): Promise<Array<{ hopNumber: number; ip: string }>> {
+    if (!this.config) return []
+
+    const isWindows = process.platform === 'win32'
+    const maxHops = this.config.maxHops
+    const timeoutMs = Math.min(this.config.timeout, 30000) // Max 30 Sekunden
+
+    console.log(`Executing system traceroute to ${this.config.target} with max ${maxHops} hops`)
+
+    return new Promise((resolve, reject) => {
+      let stdout = ''
+      let stderr = ''
+
+      const args = isWindows 
+        ? ['-h', maxHops.toString(), '-w', timeoutMs.toString(), '-d', this.config!.target]
+        : ['-n', '-w', '1', '-q', this.config!.probesPerHop.toString(), '-m', maxHops.toString(), this.config!.target]
+
+      const command = isWindows ? 'tracert' : 'traceroute'
+      console.log(`Executing: ${command} ${args.join(' ')}`)
+
+      const traceroute = spawn(command, args, {
+        windowsHide: true
+      })
+
+      traceroute.stdout.on('data', (data: Buffer) => {
+        stdout += data.toString()
+      })
+
+      traceroute.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString()
+      })
+
+      traceroute.on('close', (code: number) => {
+        console.log(`Traceroute completed with code ${code}`)
+        console.log('Traceroute output:', stdout)
+
+        if (code !== 0 && stderr) {
+          console.warn('Traceroute stderr:', stderr)
+        }
+
+        try {
+          const hops = this.parseTracerouteOutput(stdout, isWindows)
+          resolve(hops)
+        } catch (error) {
+          reject(new Error(`Failed to parse traceroute output: ${error.message}`))
+        }
+      })
+
+      traceroute.on('error', (error: Error) => {
+        console.warn('Traceroute process error:', error)
+        reject(error)
+      })
+
+      // Timeout für den gesamten Prozess
+      setTimeout(() => {
+        traceroute.kill()
+        reject(new Error('Traceroute timeout'))
+      }, timeoutMs + 5000)
+    })
+  }
+
+  /**
+   * Parst den Output eines Traceroute-Befehls
+   */
+  private parseTracerouteOutput(output: string, isWindows: boolean): Array<{ hopNumber: number; ip: string }> {
+    const lines = output.split('\n').filter(line => line.trim() !== '')
+    const hops: Array<{ hopNumber: number; ip: string }> = []
+
+    console.log(`Parsing ${lines.length} lines of traceroute output`)
+
+    for (const line of lines) {
+      let hopMatch: RegExpMatchArray | null = null
+
+      if (isWindows) {
+        // Windows tracert format: "  1    <1 ms    <1 ms    <1 ms  192.168.1.1"
+        // Oder: "  1    1 ms    <1 ms    <1 ms  192.168.1.1"
+        hopMatch = line.match(/^\s*(\d+)\s+(?:[<]?\d+\s*ms\s*){1,3}\s+(\d+\.\d+\.\d+\.\d+)/)
+        
+        // Alternative format für verschiedene Locales
+        if (!hopMatch) {
+          hopMatch = line.match(/^\s*(\d+)\s+.*?(\d+\.\d+\.\d+\.\d+)/)
+        }
+      } else {
+        // Unix/Linux/macOS traceroute format: " 1  192.168.1.1  1.234 ms  1.123 ms  1.345 ms"
+        hopMatch = line.match(/^\s*(\d+)\s+(\d+\.\d+\.\d+\.\d+)/)
+      }
+
+      if (hopMatch) {
+        const hopNumber = parseInt(hopMatch[1])
+        const ip = hopMatch[2]
+
+        // Prüfe ob der Hop bereits existiert (Duplikate vermeiden)
+        const existingHop = hops.find(h => h.hopNumber === hopNumber)
+        if (!existingHop) {
+          hops.push({ hopNumber, ip })
+          console.log(`Parsed hop ${hopNumber}: ${ip}`)
+        }
+      }
+    }
+
+    // Sortiere Hops nach Hop-Nummer
+    hops.sort((a, b) => a.hopNumber - b.hopNumber)
+
+    console.log(`Parsed ${hops.length} unique hops`)
+    return hops
+  }
+
+  /**
+   * Führt native Traceroute mit UDP-Sockets aus
+   */
+  private async performNativeTraceroute(): Promise<Array<{ hopNumber: number; ip: string }>> {
+    if (!this.config) return []
+
+    console.log('Attempting native traceroute...')
+
+    const maxHops = this.config.maxHops
+    const hops: Array<{ hopNumber: number; ip: string }> = []
+    const timeoutMs = Math.min(this.config.timeout, 5000) // Kürzerer Timeout für native Traceroute
+
+    // Versuche jeden Hop einzeln mit nativer Implementierung
+    for (let ttl = 1; ttl <= maxHops; ttl++) {
+      if (!this.isRunning) break
+
+      try {
+        const hopIp = await this.tracerouteHopNative(ttl)
+        if (hopIp) {
+          hops.push({ hopNumber: ttl, ip: hopIp })
+          console.log(`Native traceroute found hop ${ttl}: ${hopIp}`)
+
+          // Wenn wir das Ziel erreicht haben, können wir aufhören
+          if (hopIp === this.config.target) {
+            console.log(`Reached target ${this.config.target} at hop ${ttl}`)
+            break
+          }
+        } else {
+          console.log(`Native traceroute failed for hop ${ttl}`)
+          // Nach 3 aufeinanderfolgenden Fehlern aufhören
+          if (ttl > 3 && hops.length === 0) {
+            console.log('Too many consecutive failures, stopping native traceroute')
+            break
+          }
+        }
+      } catch (error) {
+        console.log(`Native traceroute error for hop ${ttl}:`, error)
+      }
+
+      // Kleine Pause zwischen Hops
+      await this.delay(100)
+    }
+
+    return hops
+  }
+
+  /**
+   * Verarbeitet die Traceroute-Ergebnisse und erstellt Hop-Objekte
+   */
+  private async processTracerouteResults(hops: Array<{ hopNumber: number; ip: string }>): Promise<void> {
+    console.log(`Processing ${hops.length} traceroute results`)
+
+    for (const hopData of hops) {
+      if (!this.isRunning) break
+
+      const hop = new MtrHop(hopData.hopNumber, hopData.ip)
+      this.hops.set(hopData.hopNumber, hop)
+
+      // Event-Listener für Hop-Updates hinzufügen
+      hop.on('ping-updated', async () => {
+        const updatedHop = await hop.toApi()
+        this.emit('hop-updated', updatedHop)
+      })
+
+      hop.on('hostname-updated', async () => {
+        const updatedHop = await hop.toApi()
+        this.emit('hop-updated', updatedHop)
+      })
+
+      hop.on('reachability-updated', async () => {
+        const updatedHop = await hop.toApi()
+        this.emit('hop-updated', updatedHop)
+      })
+
+      // Hop sofort emittieren
+      this.emit('hop-found', await hop.toApi())
+
+      // Progress aktualisieren
+      this.emit('progress', {
+        currentHop: hopData.hopNumber,
+        maxHops: this.config!.maxHops,
+        currentIp: hopData.ip,
+        phase: 'mtr'
+      })
+
+      // Hostname asynchron auflösen (nicht-blockierend)
+      setTimeout(async () => {
+        try {
+          const hostname = await this.resolveHostname(hopData.ip)
+          if (hostname) {
+            console.log(`Setting hostname for ${hopData.ip}: ${hostname}`)
+            hop.setHostname(hostname)
+            // Hop mit Hostname erneut emittieren
+            const updatedHop = await hop.toApi()
+            this.emit('hop-updated', updatedHop)
+          }
+        } catch (error) {
+          console.warn(`Could not resolve hostname for ${hopData.ip}:`, error)
+        }
+      }, 100)
+
+      // Kleine Pause zwischen Hops für bessere Performance
+      await this.delay(50)
+    }
+
+    console.log(`Processed ${hops.length} hops successfully`)
+  }
+
+  /**
+   * Führt Traceroute für einen einzelnen Hop aus (nur für native Traceroute)
    */
   private async tracerouteHop(ttl: number): Promise<string | null> {
     if (!this.config) return null
@@ -618,7 +723,7 @@ export class MtrService extends EventEmitter {
           }
 
           this.pingHistory.push(pingResult)
-          hop.addPingResult(responseTime)
+          hop.addPingResult(sentTimestamp, responseTimestamp, responseTime)
 
           this.emit('ping-result', pingResult)
         } catch (error) {
@@ -631,7 +736,7 @@ export class MtrService extends EventEmitter {
           }
 
           this.pingHistory.push(pingResult)
-          hop.addPingResult(null)
+          hop.addPingResult(sentTimestamp, null, null)
 
           this.emit('ping-result', pingResult)
         }
@@ -702,7 +807,6 @@ export class MtrService extends EventEmitter {
     return {
       target: this.config?.target || '',
       hops,
-      pingHistory: this.pingHistory,
       startTime: this.startTime,
       endTime: this.isRunning ? null : Date.now()
     }

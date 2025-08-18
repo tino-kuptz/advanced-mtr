@@ -27,6 +27,8 @@
           <td>
             <span v-if="group.avg !== null">
               <template v-if="props.selectedInterval !== 'second'">
+                {{ group.min !== null ? group.min.toFixed(1) : '-' }} / 
+                {{ group.max !== null ? group.max.toFixed(1) : '-' }} / 
                 {{ group.avg.toFixed(1) }} ms
               </template>
               <template v-else>
@@ -47,61 +49,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed } from 'vue'
 import type { AggregatedData } from '../types'
 
 interface Props {
-  hopNumber: number
-  hopIp: string
+  aggregatedData: AggregatedData[]
   selectedInterval: 'second' | 'minute' | '5min' | '15min' | '30min' | 'hour' | '2hour'
+  hopIp?: string
 }
 
 const props = defineProps<Props>()
-
-// Aggregierte Daten für diesen Hop
-const aggregatedData = ref<AggregatedData[]>([])
-const loading = ref(false)
-
-/**
- * Lädt die aggregierten Daten für diesen Hop
- */
-const loadAggregatedData = async () => {
-  try {
-    loading.value = true
-    const result = await window.electronAPI.getHopAggregatedData(props.hopNumber, props.selectedInterval)
-    
-    if (result.success) {
-      aggregatedData.value = result.data || []
-    } else {
-      console.error('Failed to load aggregated data:', result.error)
-      aggregatedData.value = []
-    }
-  } catch (error) {
-    console.error('Error loading aggregated data:', error)
-    aggregatedData.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-/**
- * Lädt Daten beim Mount und bei Änderungen
- */
-onMounted(() => {
-  loadAggregatedData()
-})
-
-watch(() => props.selectedInterval, () => {
-  loadAggregatedData()
-})
 
 /**
  * Berechnet die gruppierten Daten für die Tabelle
  */
 const groupedData = computed(() => {
-  return aggregatedData.value.map(item => ({
-    ip: props.hopIp,
+  return props.aggregatedData.map(item => ({
+    ip: props.hopIp || '-',
     timestamp: item.timestamp,
+    min: item.minResponseTime,
+    max: item.maxResponseTime,
     avg: item.averageResponseTime,
     drops: item.failedPings,
     total: item.totalPings

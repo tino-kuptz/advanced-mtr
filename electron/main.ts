@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, dialog, shell } from 'electron'
 import { join } from 'path'
 import { MtrService } from './services/MtrService'
 import { ExportService } from './services/ExportService'
@@ -70,7 +70,7 @@ function createMenu() {
 
             if (!result.canceled && result.filePaths.length > 0) {
               const filePath = result.filePaths[0]
-              
+
               try {
                 if (!ExportService.validateFile(filePath)) {
                   dialog.showErrorBox('Ungültige Datei', 'Die ausgewählte Datei ist keine gültige MTR-Datei.')
@@ -79,7 +79,7 @@ function createMenu() {
 
                 const importedData = ExportService.importFromFile(filePath)
                 currentMtrData = importedData
-                
+
                 // Daten an das Frontend senden
                 mainWindow?.webContents.send('mtr-data-imported', {
                   config: importedData.config,
@@ -169,6 +169,13 @@ function createWindow() {
     })
   })
 
+  // Öffne Links mit target=_blank in Stanadrdbrowser
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
   })
@@ -200,13 +207,13 @@ app.on('activate', () => {
 ipcMain.handle('start-mtr', async (event, mtrConfig) => {
   try {
     mtrService = new MtrService()
-    
+
     // Aktuelle MTR-Daten initialisieren
     currentMtrData = {
       config: mtrConfig,
       hops: new Map()
     }
-    
+
     // Event-Handler für MTR-Updates
     mtrService.on('hop-found', async (hop: any) => {
       // Hop zu den aktuellen Daten hinzufügen (als MtrHop-Instanz)
@@ -219,7 +226,7 @@ ipcMain.handle('start-mtr', async (event, mtrConfig) => {
       }
       mainWindow?.webContents.send('hop-found', hop)
     })
-    
+
     mtrService.on('hop-updated', async (hop: any) => {
       // Hop in den aktuellen Daten aktualisieren (als MtrHop-Instanz)
       if (currentMtrData) {
@@ -231,20 +238,20 @@ ipcMain.handle('start-mtr', async (event, mtrConfig) => {
       }
       mainWindow?.webContents.send('hop-updated', hop)
     })
-    
+
     mtrService.on('ping-result', (pingResult: any) => {
       // Ping-Ergebnis wird jetzt direkt in den Hops gespeichert
       mainWindow?.webContents.send('ping-result', pingResult)
     })
-    
+
     mtrService.on('progress', (progress: any) => {
       mainWindow?.webContents.send('mtr-progress', progress)
     })
-    
+
     mtrService.on('mtr-complete', () => {
       mainWindow?.webContents.send('mtr-complete')
     })
-    
+
     await mtrService.startMtr(mtrConfig)
     return { success: true }
   } catch (error) {

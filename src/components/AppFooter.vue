@@ -1,7 +1,8 @@
 <template>
   <div class="footer">
     <div class="copyright">
-      © 2025 {{ new Date().getFullYear() != 2025 ? '-' + new Date().getFullYear() : '' }} Tino Kuptz
+      © 2025 {{ new Date().getFullYear() != 2025 ? '-' + new Date().getFullYear() : '' }} Tino Kuptz.
+      <a href="https://github.com/tino-kuptz/advanced-mtr" target="_blank">GitHub</a>
     </div>
   </div>
 </template>
@@ -20,30 +21,10 @@ interface Props {
   statusMessage: string
 }
 
+// @ts-ignore
 const props = defineProps<Props>()
-
-/**
- * Berechnet den Fortschritt in Prozent
- * @returns Fortschritt als Prozentwert (0-100)
- */
-const progressPercentage = computed(() => {
-  if (props.progress.maxHops === 0) return 0
-  return Math.round((props.progress.currentHop / props.progress.maxHops) * 100)
-})
-
-/**
- * Berechnet den Fortschrittstext
- * @returns Fortschrittstext für die Anzeige
- */
-const progressText = computed(() => {
-  if (props.progress.phase === 'mtr') {
-    return `MTR: ${props.progress.currentHop} / ${props.progress.maxHops} Hops`
-  } else {
-    return `Ping: Kontinuierlich`
-  }
-})
 </script>
 
 <style scoped>
-/* Styles werden von der Haupt-App geerbt */
+a { color: black; text-decoration: none; }
 </style>
