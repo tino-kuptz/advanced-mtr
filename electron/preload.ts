@@ -5,6 +5,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electronAPI', {
   startMtr: (config: any) => ipcRenderer.invoke('start-mtr', config),
   stopMtr: () => ipcRenderer.invoke('stop-mtr'),
+  getHopAggregatedData: (hopNumber: number, interval: string) => 
+    ipcRenderer.invoke('get-hop-aggregated-data', hopNumber, interval),
+  getHopPingHistory: (hopNumber: number) => 
+    ipcRenderer.invoke('get-hop-ping-history', hopNumber),
   onHopFound: (callback: (hop: any) => void) => {
     ipcRenderer.on('hop-found', (event, hop) => callback(hop))
   },
@@ -34,6 +38,8 @@ declare global {
     electronAPI: {
       startMtr: (config: any) => Promise<any>
       stopMtr: () => Promise<any>
+      getHopAggregatedData: (hopNumber: number, interval: string) => Promise<any>
+      getHopPingHistory: (hopNumber: number) => Promise<any>
       onHopFound: (callback: (hop: any) => void) => void
       onHopUpdated: (callback: (hop: any) => void) => void
       onPingResult: (callback: (pingResult: any) => void) => void

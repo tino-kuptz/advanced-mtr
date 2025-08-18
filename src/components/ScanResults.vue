@@ -4,7 +4,6 @@
     <HopDetail 
       v-if="selectedHop"
       :hop="selectedHop"
-      :ping-history="mtrResults.pingHistory"
       @back="closeDetail"
     />
 
@@ -115,10 +114,6 @@ const closeDetail = () => {
 </script>
 
 <style scoped>
-.scan-results {
-  margin-top: 20px;
-}
-
 .no-results {
   text-align: center;
   color: #666;

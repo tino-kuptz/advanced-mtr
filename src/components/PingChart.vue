@@ -7,107 +7,81 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
+import type { AggregatedData } from '../types'
 
 interface Props {
-    pingHistory: any[]
+    hopNumber: number
     hopIp: string
     selectedInterval: 'second' | 'minute' | '5min' | '15min' | '30min' | 'hour' | '2hour'
 }
 
 const props = defineProps<Props>()
 
+// Aggregierte Daten für diesen Hop
+const aggregatedData = ref<AggregatedData[]>([])
+const loading = ref(false)
+
 /**
- * Berechnet die Ping-Historie für diesen spezifischen Hop
+ * Lädt die aggregierten Daten für diesen Hop
  */
-const hopPingHistory = computed(() => {
-    return props.pingHistory.filter(ping => ping.targetIp === props.hopIp)
+const loadAggregatedData = async () => {
+    try {
+        loading.value = true
+        const result = await window.electronAPI.getHopAggregatedData(props.hopNumber, props.selectedInterval)
+        
+        if (result.success) {
+            aggregatedData.value = result.data
+        } else {
+            console.error('Failed to load aggregated data:', result.error)
+            aggregatedData.value = []
+        }
+    } catch (error) {
+        console.error('Error loading aggregated data:', error)
+        aggregatedData.value = []
+    } finally {
+        loading.value = false
+    }
+}
+
+/**
+ * Lädt Daten beim Mount und bei Änderungen
+ */
+onMounted(() => {
+    loadAggregatedData()
 })
 
-/**
- * Berechnet die Millisekunden für das ausgewählte Intervall
- */
-const getIntervalMs = (interval: string): number => {
-    switch (interval) {
-        case 'second': return 1000
-        case 'minute': return 60 * 1000
-        case '5min': return 5 * 60 * 1000
-        case '15min': return 15 * 60 * 1000
-        case '30min': return 30 * 60 * 1000
-        case 'hour': return 60 * 60 * 1000
-        case '2hour': return 2 * 60 * 60 * 1000
-        default: return 60 * 1000
-    }
-}
+watch(() => props.selectedInterval, () => {
+    loadAggregatedData()
+})
 
-/**
- * Gruppiert Pings nach Zeitintervallen
- */
-const groupPingsByInterval = (pings: any[], intervalMs: number) => {
-    const groups: { [key: string]: any[] } = {}
+// Automatische Aktualisierung jede Sekunde
+let updateInterval: NodeJS.Timeout | null = null
 
-    pings.forEach(ping => {
-        const timestamp = ping.sentTimestamp
-        const intervalStart = Math.floor(timestamp / intervalMs) * intervalMs
-        const key = intervalStart.toString()
-
-        if (!groups[key]) {
-            groups[key] = []
+onMounted(() => {
+    updateInterval = setInterval(() => {
+        if (props.selectedInterval === 'second') {
+            loadAggregatedData()
         }
-        groups[key].push(ping)
-    })
+    }, 1000)
+})
 
-    return groups
-}
-
-/**
- * Berechnet Durchschnitt und Status für eine Ping-Gruppe
- */
-const calculateIntervalStats = (pings: any[]) => {
-    const successfulPings = pings.filter(p => p.isSuccessful && p.responseTime !== null)
-    const failedPings = pings.filter(p => !p.isSuccessful)
-
-    // Mindestens ein Timeout = rot markieren
-    const hasAnyTimeout = failedPings.length > 0
-
-    if (successfulPings.length === 0) {
-        return {
-            averageResponseTime: null,
-            hasAnyTimeout: hasAnyTimeout,
-            totalPings: pings.length
-        }
+// Cleanup beim Unmount
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+    if (updateInterval) {
+        clearInterval(updateInterval)
     }
-
-    const totalResponseTime = successfulPings.reduce((sum, ping) => sum + ping.responseTime, 0)
-    const averageResponseTime = totalResponseTime / successfulPings.length
-
-    return {
-        averageResponseTime,
-        hasAnyTimeout: hasAnyTimeout,
-        totalPings: pings.length
-    }
-}
+})
 
 /**
  * Berechnet die Chart-Daten
  */
 const chartData = computed(() => {
-    const history = hopPingHistory.value
-    const intervalMs = getIntervalMs(props.selectedInterval)
-    const groups = groupPingsByInterval(history, intervalMs)
+    const data = aggregatedData.value
 
-    // Sortiere Gruppen nach Zeitstempel
-    const sortedKeys = Object.keys(groups).sort((a, b) => parseInt(a) - parseInt(b))
-
-    // Bei Sekundenansicht nur die letzten 30 Sekunden anzeigen
-    let displayKeys = sortedKeys
-    if (props.selectedInterval === 'second') {
-        displayKeys = sortedKeys.slice(-30)
-    }
-
-    const labels = displayKeys.map(key => {
-        const timestamp = parseInt(key)
-        const date = new Date(timestamp)
+    const labels = data.map(item => {
+        const date = new Date(item.timestamp)
 
         switch (props.selectedInterval) {
             case 'second':
@@ -127,10 +101,7 @@ const chartData = computed(() => {
         }
     })
 
-    const responseTimes = displayKeys.map(key => {
-        const stats = calculateIntervalStats(groups[key])
-        return stats.averageResponseTime
-    })
+    const responseTimes = data.map(item => item.averageResponseTime)
 
     return {
         labels,
@@ -156,23 +127,6 @@ const chartSeries = computed(() => {
  */
 const chartOptions = computed(() => {
     const data = chartData.value
-    const history = hopPingHistory.value
-    const intervalMs = getIntervalMs(props.selectedInterval)
-    var groups = groupPingsByInterval(history, intervalMs)
-    var sortedKeys = Object.keys(groups).sort((a, b) => parseInt(a) - parseInt(b))
-
-    // Immer nur die letzten 30 Datensätze anzeigen
-    let displayKeys = sortedKeys.slice(-30)
-
-
-    const limitedGroups: Record<string, typeof groups[string]> = {}
-    for (const key of displayKeys) {
-        limitedGroups[key] = groups[key]
-    }
-
-    // Verwende die begrenzten Daten
-    groups = limitedGroups
-    sortedKeys = displayKeys
 
     // Erstelle Hintergrund-Bereiche für Timeouts
     const annotations = {
@@ -182,9 +136,8 @@ const chartOptions = computed(() => {
                 const timeoutRanges: any[] = []
                 let currentRange: { start: number; end: number } | null = null
 
-                displayKeys.forEach((key, index) => {
-                    const stats = calculateIntervalStats(groups[key])
-                    const hasTimeout = stats.hasAnyTimeout
+                aggregatedData.value.forEach((item, index) => {
+                    const hasTimeout = item.hasAnyTimeout
 
                     if (hasTimeout) {
                         if (currentRange === null) {
@@ -198,18 +151,10 @@ const chartOptions = computed(() => {
                         if (currentRange !== null) {
                             // Beende aktuellen Bereich und füge ihn hinzu
                             const startIndex = Math.max(0, currentRange.start - 1)
-                            const endIndex = Math.min(displayKeys.length - 1, currentRange.end + 1)
+                            const endIndex = Math.min(data.labels.length - 1, currentRange.end + 1)
 
-                            const startKey = displayKeys[startIndex]
-                            const endKey = displayKeys[endIndex]
-
-                            const startTimestamp = parseInt(startKey)
-                            const endTimestamp = parseInt(endKey)
-                            const startDate = new Date(startTimestamp)
-                            const endDate = new Date(endTimestamp)
-
-                            const startLabel = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}:${startDate.getSeconds().toString().padStart(2, '0')}`
-                            const endLabel = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}:${endDate.getSeconds().toString().padStart(2, '0')}`
+                            const startLabel = data.labels[startIndex]
+                            const endLabel = data.labels[endIndex]
 
                             timeoutRanges.push({
                                 x: startLabel,
@@ -227,18 +172,10 @@ const chartOptions = computed(() => {
                 // Falls am Ende noch ein Bereich offen ist
                 if (currentRange !== null) {
                     const startIndex = Math.max(0, currentRange.start - 1)
-                    const endIndex = Math.min(displayKeys.length - 1, currentRange.end + 1)
+                    const endIndex = Math.min(data.labels.length - 1, currentRange.end + 1)
 
-                    const startKey = displayKeys[startIndex]
-                    const endKey = displayKeys[endIndex]
-
-                    const startTimestamp = parseInt(startKey)
-                    const endTimestamp = parseInt(endKey)
-                    const startDate = new Date(startTimestamp)
-                    const endDate = new Date(endTimestamp)
-
-                    const startLabel = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}:${startDate.getSeconds().toString().padStart(2, '0')}`
-                    const endLabel = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}:${endDate.getSeconds().toString().padStart(2, '0')}`
+                    const startLabel = data.labels[startIndex]
+                    const endLabel = data.labels[endIndex]
 
                     timeoutRanges.push({
                         x: startLabel,
@@ -252,13 +189,11 @@ const chartOptions = computed(() => {
                 return timeoutRanges
             } else {
                 // Für andere Intervalle: Punkt-Annotationen mit Labels
-                return displayKeys.map((key, _index) => {
-                    const stats = calculateIntervalStats(groups[key])
-                    if (stats.hasAnyTimeout) {
+                return aggregatedData.value.map((item, index) => {
+                    if (item.hasAnyTimeout) {
                         // Zähle die Anzahl der Timeouts in diesem Intervall
-                        const failedPings = groups[key].filter((p: any) => !p.isSuccessful)
-                        const timeoutCount = failedPings.length
-                        const totalPings = groups[key].length
+                        const timeoutCount = item.failedPings
+                        const totalPings = item.totalPings
 
                         // Zeige Timeout-Anzahl nur wenn nicht auf Sekundenbasis
                         let labelText = ''
@@ -266,30 +201,7 @@ const chartOptions = computed(() => {
                             labelText = `${timeoutCount}/${totalPings}`
                         }
 
-                        // Erstelle das Label für diese Kategorie
-                        const timestamp = parseInt(key)
-                        const date = new Date(timestamp)
-                        let categoryLabel = ''
-
-                        switch (props.selectedInterval) {
-                            case 'second':
-                                categoryLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`
-                                break
-                            case 'minute':
-                                categoryLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-                                break
-                            case '5min':
-                            case '15min':
-                            case '30min':
-                                categoryLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-                                break
-                            case 'hour':
-                            case '2hour':
-                                categoryLabel = `${date.getHours().toString().padStart(2, '0')}:00`
-                                break
-                            default:
-                                categoryLabel = date.toLocaleTimeString()
-                        }
+                        const categoryLabel = data.labels[index]
 
                         const annotation: any = {
                             x: categoryLabel,
@@ -373,13 +285,6 @@ const chartOptions = computed(() => {
         }
     }
 })
-
-/**
- * Aktualisiert das Chart
- */
-const updateChart = () => {
-    // ApexCharts aktualisiert sich automatisch
-}
 </script>
 
 <style scoped>

@@ -42,7 +42,6 @@ const isDetailView = ref(false)
 const mtrResults = ref<MtrResults>({
   target: '',
   hops: [],
-  pingHistory: [],
   startTime: 0,
   endTime: null
 })
@@ -63,7 +62,6 @@ const startMtr = async (config: MtrConfig) => {
     mtrResults.value = {
       target: config.target,
       hops: [],
-      pingHistory: [],
       startTime: Date.now(),
       endTime: null
     }
@@ -100,38 +98,17 @@ const stopMtr = async () => {
  * Event-Handler für importierte MTR-Daten
  */
 const handleMtrDataImported = (data: any) => {
-  // Ping-Historie setzen
-  mtrResults.value.pingHistory = data.pingHistory
-  
   // Hops mit berechneten Statistiken erstellen
   const hopsWithStats = data.hops.map((hop: any) => {
-    // Ping-Ergebnisse für diesen Hop filtern
-    const hopPings = data.pingHistory.filter((ping: any) => ping.targetIp === hop.ip)
-    
-    // Statistiken berechnen
-    const successfulPings = hopPings.filter((ping: any) => ping.isSuccessful)
-    const failedPings = hopPings.filter((ping: any) => !ping.isSuccessful)
-    
-    // Durchschnittliche Antwortzeit berechnen
-    let averageResponseTime = 0
-    if (successfulPings.length > 0) {
-      const totalTime = successfulPings.reduce((sum: number, ping: any) => sum + ping.responseTime, 0)
-      averageResponseTime = totalTime / successfulPings.length
-    }
-    
     return {
       ...hop,
-      successfulPings: successfulPings.length,
-      failedPings: failedPings.length,
-      averageResponseTime: averageResponseTime,
-      isOnline: successfulPings.length > 0
+      isReachable: hop.successfulPings > 0
     }
   })
   
   mtrResults.value = {
     target: data.config.target,
     hops: hopsWithStats,
-    pingHistory: data.pingHistory,
     startTime: Date.now(),
     endTime: null
   }
@@ -169,7 +146,8 @@ const handleHopUpdated = (hop: any) => {
  * @param pingResult - Ping-Ergebnis
  */
 const handlePingResult = (pingResult: any) => {
-  mtrResults.value.pingHistory.push(pingResult)
+  // Ping-Ergebnisse werden jetzt direkt in den Hops gespeichert
+  // Keine separate pingHistory mehr nötig
 }
 
 /**

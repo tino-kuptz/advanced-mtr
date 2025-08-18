@@ -52,7 +52,7 @@
         <!-- Chart View -->
         <PingChart 
           v-if="viewMode === 'chart'"
-          :ping-history="pingHistory"
+          :hop-number="hop.hopNumber"
           :hop-ip="hop.ip"
           :selected-interval="selectedInterval"
         />
@@ -60,7 +60,7 @@
         <!-- Table View -->
         <PingTable 
           v-else
-          :ping-history="pingHistory"
+          :hop-number="hop.hopNumber"
           :hop-ip="hop.ip"
           :selected-interval="selectedInterval"
         />
@@ -83,8 +83,6 @@ import PingTable from './PingTable.vue'
 interface Props {
   /** Hop-Informationen */
   hop: MtrHop
-  /** Ping-Historie für diesen Hop */
-  pingHistory: PingResult[]
 }
 
 /**

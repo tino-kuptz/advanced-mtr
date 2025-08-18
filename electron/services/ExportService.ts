@@ -1,5 +1,5 @@
 import { writeFileSync, readFileSync } from 'fs'
-import { MtrConfig, PingResult } from '../../src/types'
+import { MtrConfig } from '../../src/types'
 import { MtrHop } from '../models/MtrHop'
 
 export interface MtrExportData {
@@ -9,8 +9,8 @@ export interface MtrExportData {
     hopNumber: number
     ip: string
     hostname: string | null
+    pingHistory: { s: number; e: number | null }[]
   }>
-  pingHistory: PingResult[]
   exportDate: string
 }
 
@@ -21,22 +21,21 @@ export class ExportService {
   static exportToFile(
     filePath: string,
     config: MtrConfig,
-    hops: Map<number, MtrHop>,
-    pingHistory: PingResult[]
+    hops: Map<number, MtrHop>
   ): void {
     const exportData: MtrExportData = {
-      version: '1.0.0',
+      version: '2.0.0',
       config: config,
       hops: Array.from(hops.values()).map(hop => ({
         hopNumber: hop.getHopNumber(),
         ip: hop.getIp(),
-        hostname: hop.getHostname()
+        hostname: hop.getHostname(),
+        pingHistory: hop.getPingHistoryForExport()
       })),
-      pingHistory: pingHistory,
       exportDate: new Date().toISOString()
     }
     
-    const jsonData = JSON.stringify(exportData, null, 2)
+    const jsonData = JSON.stringify(exportData)
     writeFileSync(filePath, jsonData, 'utf8')
   }
   
@@ -46,13 +45,12 @@ export class ExportService {
   static importFromFile(filePath: string): {
     config: MtrConfig
     hops: Map<number, MtrHop>
-    pingHistory: PingResult[]
   } {
     const fileContent = readFileSync(filePath, 'utf8')
     const exportData: MtrExportData = JSON.parse(fileContent)
     
     // Validiere Version
-    if (exportData.version !== '1.0.0') {
+    if (!['1.0.0', '2.0.0'].includes(exportData.version)) {
       throw new Error(`Unsupported file version: ${exportData.version}`)
     }
     
@@ -63,13 +61,18 @@ export class ExportService {
       if (hopData.hostname) {
         hop.setHostname(hopData.hostname)
       }
+      
+      // Ping-Historie wiederherstellen (nur für Version 2.0.0)
+      if (exportData.version === '2.0.0' && hopData.pingHistory) {
+        hop.setPingHistoryFromImport(hopData.pingHistory)
+      }
+      
       hops.set(hopData.hopNumber, hop)
     }
     
     return {
       config: exportData.config,
-      hops: hops,
-      pingHistory: exportData.pingHistory
+      hops: hops
     }
   }
   
@@ -86,7 +89,6 @@ export class ExportService {
         typeof exportData.version === 'string' &&
         exportData.config &&
         exportData.hops &&
-        exportData.pingHistory &&
         typeof exportData.exportDate === 'string'
       
       return hasRequiredFields

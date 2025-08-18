@@ -35,6 +35,24 @@ export interface PingResult {
 }
 
 /**
+ * Aggregierte Ping-Daten für verschiedene Zeitintervalle
+ */
+export interface AggregatedData {
+  /** Timestamp des Intervalls */
+  timestamp: number
+  /** Durchschnittliche Antwortzeit im Intervall */
+  averageResponseTime: number | null
+  /** Anzahl erfolgreicher Pings im Intervall */
+  successfulPings: number
+  /** Anzahl fehlgeschlagener Pings im Intervall */
+  failedPings: number
+  /** Gesamtanzahl Pings im Intervall */
+  totalPings: number
+  /** Gibt an, ob es Timeouts im Intervall gab */
+  hasAnyTimeout: boolean
+}
+
+/**
  * Konfiguration für MTR und Ping
  */
 export interface MtrConfig {
@@ -63,15 +81,13 @@ export interface Progress {
 }
 
 /**
- * MTR-Ergebnisse mit allen Hops und Ping-Historie
+ * MTR-Ergebnisse mit allen Hops
  */
 export interface MtrResults {
   /** Ziel-IP oder Domain */
   target: string
   /** Gefundene Hops */
   hops: MtrHop[]
-  /** Ping-Historie für alle Hops */
-  pingHistory: PingResult[]
   /** Start-Zeit des MTR */
   startTime: number
   /** End-Zeit des MTR (null wenn noch läuft) */
@@ -86,6 +102,4 @@ export interface ImportedMtrData {
   config: MtrConfig
   /** Gefundene Hops */
   hops: MtrHop[]
-  /** Ping-Historie für alle Hops */
-  pingHistory: PingResult[]
 }

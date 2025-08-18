@@ -25,12 +25,12 @@
           <td>{{ group.ip }}</td>
           <td>{{ formatTimestamp(group.timestamp) }}</td>
           <td>
-            <span v-if="group.min !== null">
+            <span v-if="group.avg !== null">
               <template v-if="props.selectedInterval !== 'second'">
-                {{ group.min.toFixed(1) }} / {{ group.max.toFixed(1) }} / {{ group.avg.toFixed(1) }} ms
+                {{ group.avg.toFixed(1) }} ms
               </template>
               <template v-else>
-                {{ group.min.toFixed(1) }} ms
+                {{ group.avg.toFixed(1) }} ms
               </template>
             </span>
             <span v-else class="no-data">Keine Daten</span>
@@ -47,104 +47,65 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { PingResult } from '../types'
+import { computed, ref, onMounted, watch } from 'vue'
+import type { AggregatedData } from '../types'
 
 interface Props {
-  pingHistory: PingResult[]
+  hopNumber: number
   hopIp: string
   selectedInterval: 'second' | 'minute' | '5min' | '15min' | '30min' | 'hour' | '2hour'
 }
 
 const props = defineProps<Props>()
 
+// Aggregierte Daten für diesen Hop
+const aggregatedData = ref<AggregatedData[]>([])
+const loading = ref(false)
+
 /**
- * Berechnet die Millisekunden für das ausgewählte Intervall
+ * Lädt die aggregierten Daten für diesen Hop
  */
-const getIntervalMs = (interval: string): number => {
-  switch (interval) {
-    case 'second': return 1000
-    case 'minute': return 60 * 1000
-    case '5min': return 5 * 60 * 1000
-    case '15min': return 15 * 60 * 1000
-    case '30min': return 30 * 60 * 1000
-    case 'hour': return 60 * 60 * 1000
-    case '2hour': return 2 * 60 * 60 * 1000
-    default: return 60 * 1000
+const loadAggregatedData = async () => {
+  try {
+    loading.value = true
+    const result = await window.electronAPI.getHopAggregatedData(props.hopNumber, props.selectedInterval)
+    
+    if (result.success) {
+      aggregatedData.value = result.data || []
+    } else {
+      console.error('Failed to load aggregated data:', result.error)
+      aggregatedData.value = []
+    }
+  } catch (error) {
+    console.error('Error loading aggregated data:', error)
+    aggregatedData.value = []
+  } finally {
+    loading.value = false
   }
 }
 
 /**
- * Gruppiert Pings nach Zeitintervallen
+ * Lädt Daten beim Mount und bei Änderungen
  */
-const groupPingsByInterval = (pings: PingResult[], intervalMs: number) => {
-  const groups: { [key: string]: PingResult[] } = {}
+onMounted(() => {
+  loadAggregatedData()
+})
 
-  pings.forEach(ping => {
-    const timestamp = ping.sentTimestamp
-    const intervalStart = Math.floor(timestamp / intervalMs) * intervalMs
-    const key = intervalStart.toString()
-
-    if (!groups[key]) {
-      groups[key] = []
-    }
-    groups[key].push(ping)
-  })
-
-  return groups
-}
+watch(() => props.selectedInterval, () => {
+  loadAggregatedData()
+})
 
 /**
  * Berechnet die gruppierten Daten für die Tabelle
  */
 const groupedData = computed(() => {
-  const history = props.pingHistory.filter(ping => ping.targetIp === props.hopIp)
-  const intervalMs = getIntervalMs(props.selectedInterval)
-  const groups = groupPingsByInterval(history, intervalMs)
-  
-  // Sortiere Gruppen nach Zeitstempel
-  const sortedKeys = Object.keys(groups).sort((a, b) => parseInt(a) - parseInt(b))
-  
-  // Begrenze die Anzahl der angezeigten Gruppen
-  let displayKeys = sortedKeys
-  if (props.selectedInterval === 'second') {
-    displayKeys = sortedKeys.slice(-30) // Letzte 30 Sekunden
-  } else {
-    displayKeys = sortedKeys.slice(-60) // Letzte 60 Gruppen für andere Intervalle
-  }
-  
-  return displayKeys.map(key => {
-    const pings = groups[key]
-    const successfulPings = pings.filter(p => p.isSuccessful && p.responseTime !== null)
-    const failedPings = pings.filter(p => !p.isSuccessful)
-    
-    if (successfulPings.length === 0) {
-      return {
-        ip: props.hopIp,
-        timestamp: parseInt(key),
-        min: null,
-        max: null,
-        avg: null,
-        drops: failedPings.length,
-        total: pings.length
-      }
-    }
-    
-    const responseTimes = successfulPings.map(p => p.responseTime!)
-    const min = Math.min(...responseTimes)
-    const max = Math.max(...responseTimes)
-    const avg = responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
-    
-    return {
-      ip: props.hopIp,
-      timestamp: parseInt(key),
-      min,
-      max,
-      avg,
-      drops: failedPings.length,
-      total: pings.length
-    }
-  }).reverse() // Neueste zuerst
+  return aggregatedData.value.map(item => ({
+    ip: props.hopIp,
+    timestamp: item.timestamp,
+    avg: item.averageResponseTime,
+    drops: item.failedPings,
+    total: item.totalPings
+  })).reverse() // Neueste zuerst
 })
 
 /**

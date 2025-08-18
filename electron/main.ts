@@ -8,7 +8,6 @@ let mtrService: MtrService | null = null
 let currentMtrData: {
   config: any
   hops: Map<number, any>
-  pingHistory: any[]
 } | null = null
 
 function createMenu() {
@@ -43,8 +42,7 @@ function createMenu() {
                 ExportService.exportToFile(
                   result.filePath,
                   currentMtrData.config,
-                  currentMtrData.hops,
-                  currentMtrData.pingHistory
+                  currentMtrData.hops
                 )
                 dialog.showMessageBox(mainWindow!, {
                   type: 'info',
@@ -89,8 +87,7 @@ function createMenu() {
                     hopNumber: hop.getHopNumber(),
                     ip: hop.getIp(),
                     hostname: hop.getHostname()
-                  })),
-                  pingHistory: importedData.pingHistory
+                  }))
                 })
 
                 dialog.showMessageBox(mainWindow!, {
@@ -207,8 +204,7 @@ ipcMain.handle('start-mtr', async (event, mtrConfig) => {
     // Aktuelle MTR-Daten initialisieren
     currentMtrData = {
       config: mtrConfig,
-      hops: new Map(),
-      pingHistory: []
+      hops: new Map()
     }
     
     // Event-Handler für MTR-Updates
@@ -237,10 +233,7 @@ ipcMain.handle('start-mtr', async (event, mtrConfig) => {
     })
     
     mtrService.on('ping-result', (pingResult: any) => {
-      // Ping-Ergebnis zu den aktuellen Daten hinzufügen
-      if (currentMtrData) {
-        currentMtrData.pingHistory.push(pingResult)
-      }
+      // Ping-Ergebnis wird jetzt direkt in den Hops gespeichert
       mainWindow?.webContents.send('ping-result', pingResult)
     })
     
@@ -266,4 +259,41 @@ ipcMain.handle('stop-mtr', async () => {
     mtrService = null
   }
   return { success: true }
+})
+
+// Neue IPC-Handler für Datenabfrage
+ipcMain.handle('get-hop-aggregated-data', async (event, hopNumber: number, interval: string) => {
+  if (!currentMtrData) {
+    return { success: false, error: 'Keine MTR-Daten verfügbar' }
+  }
+
+  const hop = currentMtrData.hops.get(hopNumber)
+  if (!hop) {
+    return { success: false, error: `Hop ${hopNumber} nicht gefunden` }
+  }
+
+  try {
+    const aggregatedData = hop.getAggregatedData(interval)
+    return { success: true, data: aggregatedData }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('get-hop-ping-history', async (event, hopNumber: number) => {
+  if (!currentMtrData) {
+    return { success: false, error: 'Keine MTR-Daten verfügbar' }
+  }
+
+  const hop = currentMtrData.hops.get(hopNumber)
+  if (!hop) {
+    return { success: false, error: `Hop ${hopNumber} nicht gefunden` }
+  }
+
+  try {
+    const pingHistory = hop.getPingHistory()
+    return { success: true, data: pingHistory }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
 })
