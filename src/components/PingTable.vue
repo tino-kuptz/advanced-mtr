@@ -35,7 +35,7 @@
                 {{ group.avg.toFixed(1) }} ms
               </template>
             </span>
-            <span v-else class="no-data">Keine Daten</span>
+            <span v-else class="no-data">Timeout</span>
           </td>
           <td v-if="props.selectedInterval !== 'second'">
             <span :class="group.drops > 0 ? 'status-offline' : 'status-online'">
