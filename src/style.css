@@ -121,7 +121,6 @@ body {
 
 .scan-results h2 {
   color: #333;
-  margin-bottom: 20px;
 }
 
 .no-results {
@@ -173,7 +172,8 @@ body {
 
 /* Sticky table header inside scrollable container */
 .table-container .hops-table thead th,
-.table-container .ping-table thead th {
+.table-container .ping-table thead th,
+.ping-table-container .ping-table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
@@ -339,7 +339,6 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
   padding: 20px;
 }
 
@@ -390,8 +389,18 @@ body {
 .ping-table-container { width: 100%; height: 100%; overflow-y: auto; }
 
 /* Ping chart */
-.ping-chart { width: 100%; height: 100%; display: flex; flex-direction: column; }
-.chart-container { flex: 1; position: relative; height: 300px; overflow: visible; }
+.ping-chart { 
+  width: 100%; 
+  height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+  overflow: hidden !important;
+}
+.chart-container { 
+  flex: 1; 
+  position: relative;
+  overflow: hidden !important; 
+}
 
 .stats-grid {
   display: grid;
