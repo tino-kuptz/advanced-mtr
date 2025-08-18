@@ -184,7 +184,7 @@ export class MtrHop extends EventEmitter {
   getPingHistoryForExport(): { s: number; e: number | null }[] {
     return this.pingHistory.map(ping => ({
       s: ping.sentTimestamp,
-      e: ping.responseTimestamp
+      e: ping.responseTime == null || ping.responseTimestamp == null ? null : ping.responseTimestamp
     }))
   }
 
