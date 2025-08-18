@@ -199,11 +199,43 @@ h2 {
   flex: 0;
 }
 
-.results-wrapper .hops-section {
+.results-container {
   flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hops-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hops-section h3 {
+  flex: 0;
+  padding: 10px 20px;
+  margin: 0;
 }
 
 .table-container {
+  flex: 1;
   overflow-y: auto;
+  overflow-x: auto;
+}
+
+/* Sticky table header inside scrollable container */
+.table-container .hops-table thead th,
+.table-container .ping-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Ensure header background covers content behind when sticky */
+.table-container .hops-table thead th,
+.table-container .ping-table thead th {
+  background-color: #e9ecef;
 }
 </style>
