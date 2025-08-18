@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { MtrConfig } from '../types'
+import type { MtrConfig } from '../../types'
 
 /**
  * Props für die ScanConfig-Komponente
@@ -115,7 +115,3 @@ const toggleMtr = () => {
   }
 }
 </script>
-
-<style scoped>
-/* Styles werden von der Haupt-App geerbt */
-</style>

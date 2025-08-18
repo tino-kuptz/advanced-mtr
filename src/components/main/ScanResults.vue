@@ -9,7 +9,10 @@
 
     <!-- Main Results View -->
     <div class="results-wrapper" v-else>
-      <h2>{{ $t('scan.results.title') }}</h2>
+      <div class="results-header">
+        <h2>{{ $t('scan.results.title') }}</h2>
+        <h3 v-if="mtrResults.hops.length !== 0">{{ $t('scan.results.target') }}: {{ mtrResults.target }}</h3>
+      </div>
       
       <div v-if="mtrResults.hops.length === 0" class="no-results">
         <p>{{ $t('scan.results.initOneMessage') }}</p>
@@ -20,7 +23,6 @@
       <div v-else class="results-container">
         <!-- MTR Hops Table -->
         <div class="hops-section">
-          <h3>{{ $t('scan.results.target') }}: {{ mtrResults.target }}</h3>
           <div class="table-container">
             <table class="hops-table">
               <thead>
@@ -68,8 +70,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { MtrResults, MtrHop } from '../types'
-import HopDetail from './HopDetail.vue'
+import type { MtrResults, MtrHop } from '../../types'
+import HopDetail from '../hop/HopDetail.vue'
 
 /**
  * Props für die ScanResults-Komponente
@@ -112,130 +114,3 @@ const closeDetail = () => {
   emit('detail-closed')
 }
 </script>
-
-<style scoped>
-.no-results {
-  text-align: center;
-  color: #666;
-  padding: 40px;
-}
-
-.hops-section {
-  border-radius: 8px;
-}
-
-.table-container {
-  overflow-x: auto;
-  margin-top: 10px;
-}
-
-.hops-table,
-.ping-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.hops-table th,
-.hops-table td,
-.ping-table th,
-.ping-table td {
-  padding: 8px 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-.hops-table th,
-.ping-table th {
-  background-color: #e9ecef;
-  font-weight: 600;
-}
-
-.hops-table tr:hover,
-.ping-table tr:hover {
-  background-color: #f1f3f4;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.clickable-row:hover {
-  background-color: #e3f2fd !important;
-}
-
-.unreachable {
-  opacity: 0.6;
-}
-
-.ping-failed {
-  background-color: #fff5f5;
-}
-
-.status-online {
-  color: #28a745;
-  font-weight: 600;
-}
-
-.status-offline {
-  color: #dc3545;
-  font-weight: 600;
-}
-
-h2 {
-  padding-left: 20px;
-  flex: 0;
-}
-
-.results-wrapper {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 100%;
-}
-
-.results-wrapper h2 {
-  flex: 0;
-}
-
-.results-container {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.hops-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.hops-section h3 {
-  flex: 0;
-  padding: 10px 20px;
-  margin: 0;
-}
-
-.table-container {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: auto;
-}
-
-/* Sticky table header inside scrollable container */
-.table-container .hops-table thead th,
-.table-container .ping-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-/* Ensure header background covers content behind when sticky */
-.table-container .hops-table thead th,
-.table-container .ping-table thead th {
-  background-color: #e9ecef;
-}
-</style>

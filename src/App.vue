@@ -28,9 +28,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ScanConfig from './components/ScanConfig.vue'
-import ScanResults from './components/ScanResults.vue'
-import AppFooter from './components/AppFooter.vue'
+import ScanConfig from './components/main/ScanConfig.vue'
+import ScanResults from './components/main/ScanResults.vue'
+import AppFooter from './components/layout/AppFooter.vue'
 import type { MtrConfig, MtrResults, Progress } from './types'
 
 const { t } = useI18n()

@@ -9,7 +9,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { AggregatedData } from '../types'
+import type { AggregatedData } from '../../types'
 
 const { t } = useI18n()
 
@@ -210,19 +210,3 @@ const chartOptions = computed(() => {
     }
 })
 </script>
-
-<style scoped>
-.ping-chart {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.chart-container {
-    flex: 1;
-    position: relative;
-    height: 300px;
-    overflow: visible;
-}
-</style>

@@ -171,6 +171,15 @@ body {
   font-size: 14px;
 }
 
+/* Sticky table header inside scrollable container */
+.table-container .hops-table thead th,
+.table-container .ping-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: #e9ecef;
+}
+
 .hops-table th,
 .hops-table td,
 .ping-table th,
@@ -184,6 +193,11 @@ body {
 .ping-table th {
   background-color: #e9ecef;
   font-weight: 600;
+}
+
+/* Ensure ping table has white background */
+.ping-table {
+  background: white;
 }
 
 .results-container {
@@ -214,6 +228,170 @@ body {
   color: #dc3545;
   font-weight: 600;
 }
+
+/* Generic muted inline value */
+.no-data {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Results layout wrappers */
+.results-wrapper {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0px 20px;
+}
+
+.results-wrapper h2 {
+  flex: 1;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.results-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.hops-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hops-section h3 {
+  flex: 0;
+  padding: 10px 20px;
+  margin: 0;
+}
+
+.table-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+/* Hop detail (moved from component) */
+.hop-detail {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.hop-header {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #4facfe;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  background: #3a8bfe;
+  transform: translateY(-1px);
+}
+
+.back-arrow {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.hop-info { margin-left: 20px; }
+.hop-ip { margin: 0; font-size: 24px; font-weight: 700; color: #333; }
+.hop-hostname { margin: 5px 0 0 0; font-size: 16px; font-weight: 500; color: #666; }
+
+.chart-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden !important;
+  max-height: 100%;
+}
+
+.view-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px;
+}
+
+.controls-container { display: flex; align-items: center; gap: 20px; }
+.interval-selector { display: flex; align-items: center; gap: 8px; }
+.interval-selector label { font-size: 14px; font-weight: 600; color: #333; }
+.interval-selector select {
+  padding: 6px 12px;
+  border: 2px solid #4facfe;
+  border-radius: 6px;
+  background: white;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.interval-selector select:hover { background: #f0f8ff; }
+.interval-selector select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+.view-controls h3 { margin: 0; color: #333; font-size: 18px; }
+.view-toggle { display: flex; gap: 8px; }
+.toggle-btn {
+  padding: 8px 16px;
+  border: 2px solid #4facfe;
+  background: white;
+  color: #4facfe;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.toggle-btn:hover { background: #f0f8ff; }
+.toggle-btn.active { background: #4facfe; color: white; }
+
+.content-container {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow-y: hidden !important;
+  max-height: 100%;
+}
+
+/* Ping table container */
+.ping-table-container { width: 100%; height: 100%; overflow-y: auto; }
+
+/* Ping chart */
+.ping-chart { width: 100%; height: 100%; display: flex; flex-direction: column; }
+.chart-container { flex: 1; position: relative; height: 300px; overflow: visible; }
 
 .stats-grid {
   display: grid;

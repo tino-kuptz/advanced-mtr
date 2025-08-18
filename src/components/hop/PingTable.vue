@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { AggregatedData } from '../types'
+import type { AggregatedData } from '../../types'
 
 const { t } = useI18n()
 
@@ -102,57 +102,3 @@ const formatTimestamp = (timestamp: number): string => {
   }
 }
 </script>
-
-<style scoped>
-.ping-table-container {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-}
-
-.ping-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  background: white;
-}
-
-.ping-table th,
-.ping-table td {
-  padding: 8px 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-.ping-table th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  color: #333;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.ping-table tr:hover {
-  background-color: #f1f3f4;
-}
-
-.ping-table tr.ping-failed {
-  background-color: #fff5f5;
-}
-
-.status-online {
-  color: #28a745;
-  font-weight: 600;
-}
-
-.status-offline {
-  color: #dc3545;
-  font-weight: 600;
-}
-
-.no-data {
-  color: #6c757d;
-  font-style: italic;
-}
-</style>

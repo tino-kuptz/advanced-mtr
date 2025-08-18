@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import LanguageSwitcher from './LanguageSwitcher.vue'
 
-import type { Progress } from '../types'
+import type { Progress } from '../../types'
 
 /**
  * Props für die AppFooter-Komponente
@@ -33,5 +33,5 @@ const props = defineProps<Props>()
 .footer { display: flex; justify-content: center; align-items: center; }
 .copyright { flex: 1; }
 .language-switcher { flex: 0; text-align: right; }
-a { color: black; text-decoration: none; }
+.footer a { color: black; text-decoration: none; }
 </style>
