@@ -1,4 +1,4 @@
-{
+export default {
   "app": {
     "title": "Advanced MTR",
     "footer": {
@@ -21,15 +21,15 @@
     "results": {
       "title": "Scan Ergebnisse",
       "noResults": "Keine Scan-Ergebnisse verfügbar",
-      "initOneMessage": "Bitte geben Sie oben IP oder Domain ein und klicken Sie auf MTR starten.",
-      "initTwoMessage": "Advanced MTR wird dann erst einen traceroute, und dann einen ping für jeden Hop ausführen.",
-      "initThreeMessage": "Der erste Scan kann einige Sekunden dauern.",
+      "initOneMessage": "Bitte geben Sie oben eine IP-Adresse oder Domain ein und klicken Sie auf MTR starten.",
+      "initTwoMessage": "Advanced MTR führt dann eine Traceroute und anschließend einen Ping für jeden Hop durch.",
+      "initThreeMessage": "Der erste Scan kann mehrere Sekunden dauern.",
       "target": "Ziel",
       "hopNumber": "Hop",
       "ip": "IP-Adresse",
       "hostname": "Hostname",
       "status": "Status",
-      "avgResponse": "Durchschn. Antwort",
+      "avgResponse": "Ø Antwortzeit",
       "successfulPings": "Erfolgreich",
       "failedPings": "Fehlgeschlagen",
       "reachable": "Erreichbar",
@@ -46,9 +46,9 @@
       "hostname": "Hostname",
       "status": "Status",
       "statistics": "Statistiken",
-      "pingHistory": "Ping Historie",
-      "chart": "Antwortzeit Diagramm",
-      "table": "Ping Tabelle",
+      "pingHistory": "Ping-Verlauf",
+      "chart": "Antwortzeit-Diagramm",
+      "table": "Ping-Tabelle",
       "interval": "Intervall",
       "second": "Sekunde",
       "minute": "Minute",
@@ -61,13 +61,13 @@
   },
   "ping": {
     "chart": {
-      "title": "Antwortzeit Diagramm",
+      "title": "Antwortzeit-Diagramm",
       "responseTime": "Antwortzeit (ms)",
       "time": "Zeit",
       "timeouts": "Timeouts"
     },
     "table": {
-      "title": "Ping Tabelle",
+      "title": "Ping-Tabelle",
       "timestamp": "Zeitstempel",
       "responseTime": "Antwortzeit",
       "status": "Status",
@@ -98,46 +98,16 @@
     "english": "Englisch",
     "german": "Deutsch"
   },
-  "dialogs": {
-    "save": {
-      "title": "MTR-Daten speichern",
-      "defaultName": "mtr-{target}-{date}.mtr",
-      "filters": "MTR-Dateien",
-      "allFiles": "Alle Dateien",
-      "success": "MTR-Daten wurden erfolgreich in {path} gespeichert",
-      "error": "Fehler beim Speichern der Datei: {error}"
-    },
-    "load": {
-      "title": "MTR-Datei öffnen",
-      "filters": "MTR-Dateien",
-      "allFiles": "Alle Dateien",
-      "success": "MTR-Daten wurden erfolgreich aus {path} geladen",
-      "error": "Fehler beim Laden der Datei: {error}",
-      "invalidFile": "Die ausgewählte Datei ist keine gültige MTR-Datei."
-    },
-    "noData": {
-      "title": "Keine Daten",
-      "message": "Es sind keine MTR-Daten zum Speichern verfügbar."
-    }
-  },
-  "validation": {
-    "targetRequired": "Ziel ist erforderlich",
-    "targetInvalid": "Bitte geben Sie eine gültige IP-Adresse oder Domain ein",
-    "maxHopsRange": "Max Hops muss zwischen 1 und 64 liegen",
-    "timeoutRange": "Timeout muss zwischen 1000 und 30000 ms liegen",
-    "probesRange": "Sonden pro Hop muss zwischen 1 und 10 liegen"
-  },
   "common": {
     "back": "Zurück",
     "close": "Schließen",
-    "loading": "Lädt...",
-    "error": "Fehler",
-    "success": "Erfolg",
-    "cancel": "Abbrechen",
     "save": "Speichern",
     "load": "Laden",
-    "delete": "Löschen",
-    "edit": "Bearbeiten",
-    "view": "Anzeigen"
+    "cancel": "Abbrechen",
+    "ok": "OK",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "loading": "Lädt...",
+    "noData": "Keine Daten verfügbar"
   }
 }

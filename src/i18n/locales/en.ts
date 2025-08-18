@@ -1,4 +1,4 @@
-{
+export default {
   "app": {
     "title": "Advanced MTR",
     "footer": {
@@ -98,46 +98,16 @@
     "english": "English",
     "german": "German"
   },
-  "dialogs": {
-    "save": {
-      "title": "Save MTR Data",
-      "defaultName": "mtr-{target}-{date}.mtr",
-      "filters": "MTR Files",
-      "allFiles": "All Files",
-      "success": "MTR data saved successfully to {path}",
-      "error": "Error saving file: {error}"
-    },
-    "load": {
-      "title": "Open MTR File",
-      "filters": "MTR Files",
-      "allFiles": "All Files",
-      "success": "MTR data loaded successfully from {path}",
-      "error": "Error loading file: {error}",
-      "invalidFile": "The selected file is not a valid MTR file."
-    },
-    "noData": {
-      "title": "No Data",
-      "message": "No MTR data available to save."
-    }
-  },
-  "validation": {
-    "targetRequired": "Target is required",
-    "targetInvalid": "Please enter a valid IP address or domain",
-    "maxHopsRange": "Max hops must be between 1 and 64",
-    "timeoutRange": "Timeout must be between 1000 and 30000 ms",
-    "probesRange": "Probes per hop must be between 1 and 10"
-  },
   "common": {
     "back": "Back",
     "close": "Close",
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "cancel": "Cancel",
     "save": "Save",
     "load": "Load",
-    "delete": "Delete",
-    "edit": "Edit",
-    "view": "View"
+    "cancel": "Cancel",
+    "ok": "OK",
+    "error": "Error",
+    "success": "Success",
+    "loading": "Loading...",
+    "noData": "No data available"
   }
 }

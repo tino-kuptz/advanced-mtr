@@ -1,6 +1,7 @@
 {
   "appId": "com.advancedmtr.app",
   "productName": "Advanced MTR",
+  "icon": "readme/icon.png",
   "directories": {
     "output": "release"
   },
@@ -22,6 +23,7 @@
     "hardenedRuntime": false
   },
   "win": {
+    "icon": "readme/icon.ico",
     "target": [
       {
         "target": "nsis",
