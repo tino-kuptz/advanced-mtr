@@ -1,17 +1,26 @@
 <template>
     <div class="ping-chart">
-        <div class="chart-container">
-            <apexchart type="line" :options="chartOptions" :series="chartSeries" height="300" />
+        <div class="chart-container" ref="chartContainer">
+            <apexchart 
+                type="line" 
+                :options="chartOptions" 
+                :series="chartSeries" 
+                height="100%"
+                width="100%"
+            />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AggregatedData } from '../../types'
 
 const { t } = useI18n()
+
+const chartContainer = ref<HTMLElement>()
+let resizeObserver: ResizeObserver | null = null
 
 interface Props {
     aggregatedData: AggregatedData[]
@@ -173,7 +182,9 @@ const chartOptions = computed(() => {
         chart: {
             type: 'line',
             animations: { enabled: false },
-            toolbar: { show: false }
+            toolbar: { show: false },
+            redrawOnWindowResize: true,
+            redrawOnParentResize: true
         },
         xaxis: {
             type: 'category',
@@ -207,6 +218,27 @@ const chartOptions = computed(() => {
             position: 'top',
             showForSingleSeries: true
         }
+    }
+})
+
+// Handle chart resizing
+onMounted(() => {
+    if (chartContainer.value) {
+        resizeObserver = new ResizeObserver(() => {
+            // Trigger chart redraw when container size changes
+            const chartElement = chartContainer.value?.querySelector('.apexcharts-canvas')
+            if (chartElement) {
+                // Force chart to recalculate dimensions
+                window.dispatchEvent(new Event('resize'))
+            }
+        })
+        resizeObserver.observe(chartContainer.value)
+    }
+})
+
+onUnmounted(() => {
+    if (resizeObserver) {
+        resizeObserver.disconnect()
     }
 })
 </script>
