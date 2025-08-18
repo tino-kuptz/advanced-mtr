@@ -1,5 +1,5 @@
-// Notarisierungs-Script für macOS Code Signing
-// Wird von electron-builder nach dem Signieren aufgerufen
+// Notarization script for macOS code signing
+// Called by electron-builder after signing
 
 const { notarize } = require('@electron/notarize');
 
@@ -9,7 +9,7 @@ module.exports = async function notarizing(context) {
     return;
   }
 
-  // Nur notarisieren wenn Umgebungsvariablen gesetzt sind
+  // Only notarize if environment variables are set
   if (!process.env.APPLE_ID || !process.env.APPLE_ID_PASS) {
     console.log('Skipping notarization: APPLE_ID or APPLE_ID_PASS not set');
     return;

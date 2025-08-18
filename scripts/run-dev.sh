@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# IP Scanner Development Script
-# Startet die Entwicklungsumgebung mit Vite und Electron
+# Advanced MTR Development Script
+# Starts the development environment with Vite and Electron
 
 set -e  # Exit on any error
 
-echo "Starting IP Scanner development environment..."
+echo "Starting Advanced MTR development environment..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -31,29 +31,29 @@ print_warning() {
     echo -e "${YELLOW}$1${NC}"
 }
 
-# Prüfe ob wir im richtigen Verzeichnis sind
+# Check if we are in the right directory
 if [ ! -f "package.json" ]; then
     print_error "Error: package.json not found. Please run this script from the project root."
     exit 1
 fi
 
-# Prüfe ob Node.js installiert ist
+# Check if Node.js is installed
 if ! command -v node &> /dev/null; then
     print_error "Node.js is not installed. Please install Node.js first."
     exit 1
 fi
 
-# Prüfe ob npm installiert ist
+# Check if npm is installed
 if ! command -v npm &> /dev/null; then
     print_error "npm is not installed. Please install npm first."
     exit 1
 fi
 
-# Beende bestehende Prozesse
+# Stop existing processes
 print_status "Stopping any existing processes..."
 pkill -f "vite\|electron" 2>/dev/null || true
 
-# Baue Electron-Dateien
+# Build Electron files
 print_status "Building Electron files..."
 if node build.js; then
     print_success "Electron files built successfully"
@@ -67,21 +67,21 @@ print_status "Starting Vite development server..."
 npx vite &
 VITE_PID=$!
 
-# Warte bis Vite gestartet ist
+# Wait until Vite is started
 sleep 3
 
-# Prüfe ob Vite läuft
+# Check if Vite is running
 if ! curl -s http://localhost:5173 > /dev/null 2>&1; then
     print_warning "Vite server might not be ready yet, waiting a bit more..."
     sleep 2
 fi
 
-# Starte Electron
+# Start Electron
 print_status "Starting Electron..."
 NODE_ENV=development npx electron . &
 ELECTRON_PID=$!
 
-# Cleanup-Funktion beim Beenden
+# Cleanup function on exit
 cleanup() {
     print_status "\nShutting down..."
     kill $VITE_PID 2>/dev/null || true
@@ -90,7 +90,7 @@ cleanup() {
     exit 0
 }
 
-# Signal-Handler einrichten
+# Setup signal handler
 trap cleanup SIGINT SIGTERM
 
 print_success "Development environment started successfully!"

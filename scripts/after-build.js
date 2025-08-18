@@ -1,5 +1,5 @@
-// After-Build Script für Post-Build-Aufgaben
-// Wird von electron-builder nach allen Builds aufgerufen
+// After-build script for post-build tasks
+// Called by electron-builder after all builds
 
 const fs = require('fs');
 const path = require('path');
@@ -9,7 +9,7 @@ module.exports = async function afterAllArtifactBuild(context) {
   
   const { artifactPaths, packager } = context;
   
-  // Liste alle erstellten Artifakte
+  // List all created artifacts
   console.log('Created artifacts:');
   artifactPaths.forEach(artifactPath => {
     const fileName = path.basename(artifactPath);
@@ -18,7 +18,7 @@ module.exports = async function afterAllArtifactBuild(context) {
     console.log(`  ${fileName} (${fileSizeMB} MB)`);
   });
   
-  // Erstelle eine Build-Info Datei
+  // Create a build info file
   const buildInfo = {
     timestamp: new Date().toISOString(),
     version: packager?.appInfo?.version || '1.0.0',

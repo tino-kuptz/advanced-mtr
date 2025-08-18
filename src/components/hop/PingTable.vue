@@ -17,18 +17,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr 
-          v-for="group in groupedData" 
-          :key="group.timestamp"
-          :class="{ 'ping-failed': group.drops > 0 }"
-        >
+        <tr v-for="group in groupedData" :key="group.timestamp" :class="{ 'ping-failed': group.drops > 0 }">
           <td>{{ group.ip }}</td>
           <td>{{ formatTimestamp(group.timestamp) }}</td>
           <td>
             <span v-if="group.avg !== null">
               <template v-if="props.selectedInterval !== 'second'">
-                {{ group.min !== null ? group.min.toFixed(1) : '-' }} / 
-                {{ group.max !== null ? group.max.toFixed(1) : '-' }} / 
+                {{ group.min !== null ? group.min.toFixed(1) : '-' }} /
+                {{ group.max !== null ? group.max.toFixed(1) : '-' }} /
                 {{ group.avg.toFixed(1) }} ms
               </template>
               <template v-else>
@@ -64,7 +60,7 @@ interface Props {
 const props = defineProps<Props>()
 
 /**
- * Berechnet die gruppierten Daten für die Tabelle
+ * Computes the grouped data for the table
  */
 const groupedData = computed(() => {
   return props.aggregatedData.map(item => ({
@@ -79,11 +75,11 @@ const groupedData = computed(() => {
 })
 
 /**
- * Formatiert einen Timestamp
+ * Formats a timestamp
  */
 const formatTimestamp = (timestamp: number): string => {
   const date = new Date(timestamp)
-  
+
   switch (props.selectedInterval) {
     case 'second':
       return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`

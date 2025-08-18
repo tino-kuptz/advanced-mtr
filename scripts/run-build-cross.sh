@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# IP Scanner Cross-Platform Build Script
-# Erstellt Electron-Binaries für Windows, Linux und macOS von macOS aus
+# Advanced MTR Cross-Platform Build Script
+# Creates Electron binaries for Windows, Linux and macOS from macOS
 
 set -e  # Exit on any error
 
@@ -31,42 +31,42 @@ print_warning() {
     echo -e "${YELLOW}$1${NC}"
 }
 
-# Prüfe ob wir im richtigen Verzeichnis sind
+# Check if we are in the right directory
 if [ ! -f "package.json" ]; then
     print_error "Error: package.json not found. Please run this script from the project root."
     exit 1
 fi
 
-# Prüfe ob Node.js installiert ist
+# Check if Node.js is installed
 if ! command -v node &> /dev/null; then
     print_error "Node.js is not installed. Please install Node.js first."
     exit 1
 fi
 
-# Prüfe ob npm installiert ist
+# Check if npm is installed
 if ! command -v npm &> /dev/null; then
     print_error "npm is not installed. Please install npm first."
     exit 1
 fi
 
-# Prüfe ob wir auf macOS sind
+# Check if we are on macOS
 if [[ "$OSTYPE" != "darwin"* ]]; then
     print_warning "Cross-compilation works best on macOS. You're running on: $OSTYPE"
 fi
 
-# Erstelle Release-Verzeichnis
+# Create release directory
 print_status "Creating release directory..."
 mkdir -p release
 
-# Lösche vorherige Builds
+# Clean previous builds
 print_status "Cleaning previous builds..."
 rm -rf dist dist-electron release/*
 
-# Installiere Dependencies falls nötig
+# Install dependencies if needed
 print_status "Checking dependencies..."
 npm install
 
-# Baue Vue.js Anwendung
+# Build Vue.js application
 print_status "Building Vue.js application..."
 if npx vite build; then
     print_success "Vue.js build completed"
@@ -75,7 +75,7 @@ else
     exit 1
 fi
 
-# Baue Electron-Dateien
+# Build Electron files
 print_status "Building Electron files..."
 if node build.js; then
     print_success "Electron build completed"
@@ -84,10 +84,10 @@ else
     exit 1
 fi
 
-# Deaktiviere Code Signing komplett
+# Disable code signing completely
 export CSC_IDENTITY_AUTO_DISCOVERY=false
 
-# Baue für alle Plattformen mit Cross-Compilation
+# Build for all platforms with cross-compilation
 print_status "Building for all platforms (Cross-Compilation)..."
 
 # macOS Builds (native)
@@ -117,16 +117,16 @@ else
     exit 1
 fi
 
-# Verschiebe Builds ins Release-Verzeichnis
+# Move builds to release directory
 print_status "Moving builds to release directory..."
 if [ -d "dist" ]; then
     cp -r dist/* release/ 2>/dev/null || true
 fi
 
-# Liste erstellte Dateien
+# List created files
 print_status "Created files:"
 if [ -d "release" ]; then
-    find release -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) | while read file; do
+    find release -type f \( -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) | while read file; do
         print_success "  $(basename "$file")"
     done
 fi
@@ -135,7 +135,7 @@ print_success "Cross-platform build process completed!"
 print_status "Check the 'release' directory for your builds"
 print_status ""
 print_status "Available platforms:"
-print_status "  macOS: .dmg files (x64, arm64)"
+print_status "  macOS: .zip files (x64, arm64)"
 print_status "  Windows: .exe files (x64, arm64)"
 print_status "  Linux: .AppImage, .deb, .rpm files (x64)"
 print_status ""

@@ -1,13 +1,7 @@
 <template>
     <div class="ping-chart">
         <div class="chart-container" ref="chartContainer">
-            <apexchart 
-                type="line" 
-                :options="chartOptions" 
-                :series="chartSeries" 
-                height="100%"
-                width="100%"
-            />
+            <apexchart type="line" :options="chartOptions" :series="chartSeries" height="100%" width="100%" />
         </div>
     </div>
 </template>
@@ -30,7 +24,7 @@ interface Props {
 const props = defineProps<Props>()
 
 /**
- * Formatiert ein Label anhand des Intervalls
+ * Formats a label based on the selected interval
  */
 const formatLabel = (timestamp: number) => {
     const date = new Date(timestamp)
@@ -52,7 +46,7 @@ const formatLabel = (timestamp: number) => {
 }
 
 /**
- * Berechnet die Chart-Daten
+ * Computes the chart data
  */
 const chartData = computed(() => {
     const data = props.aggregatedData
@@ -66,7 +60,7 @@ const chartData = computed(() => {
 })
 
 /**
- * ApexCharts Series
+ * ApexCharts series
  */
 const chartSeries = computed(() => {
     const data = chartData.value
@@ -80,12 +74,12 @@ const chartSeries = computed(() => {
 })
 
 /**
- * ApexCharts Options
+ * ApexCharts options
  */
 const chartOptions = computed(() => {
     const data = chartData.value
 
-    // Erstelle Hintergrund-Bereiche für Timeouts
+    // Create background areas for timeouts
     const annotations = {
         xaxis: (() => {
             if (props.selectedInterval === 'second') {
@@ -214,7 +208,7 @@ const chartOptions = computed(() => {
                 }
             }
         },
-        legend: { 
+        legend: {
             position: 'top',
             showForSingleSeries: true
         }

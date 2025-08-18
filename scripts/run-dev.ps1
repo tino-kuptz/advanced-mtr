@@ -1,10 +1,10 @@
-# IP Scanner Development Script for Windows
+# Advanced MTR Development Script for Windows
 # Starts the development environment with Vite and Electron
 
 # Stop on any error
 $ErrorActionPreference = "Stop"
 
-Write-Host "Starting IP Scanner development environment..." -ForegroundColor Blue
+Write-Host "Starting Advanced MTR development environment..." -ForegroundColor Blue
 
 # Colors for output
 $Red = "Red"

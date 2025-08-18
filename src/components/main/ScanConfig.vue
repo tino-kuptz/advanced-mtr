@@ -4,38 +4,21 @@
     <div class="scan-controls">
       <div class="form-group">
         <label for="target">{{ $t('scan.config.target') }}</label>
-        <input 
-          id="target" 
-          v-model="mtrConfig.target" 
-          type="text" 
-          :placeholder="$t('scan.config.targetPlaceholder')" 
-          :disabled="isScanning"
-        />
+        <input id="target" v-model="mtrConfig.target" type="text" :placeholder="$t('scan.config.targetPlaceholder')"
+          :disabled="isScanning" />
       </div>
 
       <!-- MTR Configuration -->
       <div class="form-group">
         <label for="maxHops">{{ $t('scan.config.maxHops') }}</label>
-        <input 
-          id="maxHops" 
-          v-model.number="mtrConfig.maxHops" 
-          type="number" 
-          min="1" 
-          max="64" 
-          :disabled="props.isScanning"
-        />
+        <input id="maxHops" v-model.number="mtrConfig.maxHops" type="number" min="1" max="64"
+          :disabled="props.isScanning" />
       </div>
 
       <div class="form-group">
         <label for="timeout">{{ $t('scan.config.timeout') }}</label>
-        <input 
-          id="timeout" 
-          v-model.number="mtrConfig.timeout" 
-          type="number" 
-          min="1000" 
-          max="30000" 
-          :disabled="props.isScanning"
-        />
+        <input id="timeout" v-model.number="mtrConfig.timeout" type="number" min="1000" max="30000"
+          :disabled="props.isScanning" />
       </div>
 
       <!-- Start/Stop Button -->
@@ -57,18 +40,18 @@ import { ref, computed } from 'vue'
 import type { MtrConfig } from '../../types'
 
 /**
- * Props für die ScanConfig-Komponente
+ * Props for the ScanConfig component
  */
 interface Props {
-  /** Gibt an, ob aktuell ein MTR läuft */
+  /** Indicates whether an MTR is currently running */
   isScanning: boolean
 }
 
 /**
- * Events, die von der ScanConfig-Komponente emittiert werden
+ * Events, that the ScanConfig component emits
  */
 interface Emits {
-  /** Wird emittiert, wenn ein neuer MTR gestartet werden soll */
+  /** Emitted when a new MTR should be started */
   (e: 'start-mtr', config: MtrConfig): void
   /** Wird emittiert, wenn der MTR gestoppt werden soll */
   (e: 'stop-mtr'): void
@@ -77,7 +60,7 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-/** Konfiguration für den MTR */
+/** Configuration for the MTR */
 const mtrConfig = ref<MtrConfig>({
   target: '8.8.8.8',
   maxHops: 30,
@@ -86,19 +69,19 @@ const mtrConfig = ref<MtrConfig>({
 })
 
 /**
- * Überprüft, ob die aktuelle Konfiguration gültig ist
- * @returns true wenn alle erforderlichen Felder ausgefüllt sind
+ * Checks if the current configuration is valid
+ * @returns true if all required fields are filled
  */
 const isValidConfig = computed(() => {
   return mtrConfig.value.target.trim() !== '' &&
-         mtrConfig.value.maxHops > 0 &&
-         mtrConfig.value.maxHops <= 64 &&
-         mtrConfig.value.timeout >= 1000 &&
-         mtrConfig.value.timeout <= 30000
+    mtrConfig.value.maxHops > 0 &&
+    mtrConfig.value.maxHops <= 64 &&
+    mtrConfig.value.timeout >= 1000 &&
+    mtrConfig.value.timeout <= 30000
 })
 
 /**
- * Startet oder stoppt den MTR
+ * Starts or stops the MTR
  */
 const toggleMtr = () => {
   if (props.isScanning) {

@@ -5,9 +5,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electronAPI', {
   startMtr: (config: any) => ipcRenderer.invoke('start-mtr', config),
   stopMtr: () => ipcRenderer.invoke('stop-mtr'),
-  getHopAggregatedData: (hopNumber: number, interval: string) => 
+  getHopAggregatedData: (hopNumber: number, interval: string) =>
     ipcRenderer.invoke('get-hop-aggregated-data', hopNumber, interval),
-  getHopPingHistory: (hopNumber: number) => 
+  getHopPingHistory: (hopNumber: number) =>
     ipcRenderer.invoke('get-hop-ping-history', hopNumber),
   onHopFound: (callback: (hop: any) => void) => {
     ipcRenderer.on('hop-found', (event, hop) => callback(hop))
@@ -32,7 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   }
 })
 
-// TypeScript-Deklarationen für die globale API
+// TypeScript declarations for the global API
 declare global {
   interface Window {
     electronAPI: {

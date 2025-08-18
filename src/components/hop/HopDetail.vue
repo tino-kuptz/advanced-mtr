@@ -30,43 +30,25 @@
             </select>
           </div>
           <div class="view-toggle">
-            <button 
-              class="toggle-btn" 
-              :class="{ active: viewMode === 'chart' }"
-              @click="viewMode = 'chart'"
-            >
+            <button class="toggle-btn" :class="{ active: viewMode === 'chart' }" @click="viewMode = 'chart'">
               {{ $t('hop.detail.chart') }}
             </button>
-            <button 
-              class="toggle-btn" 
-              :class="{ active: viewMode === 'table' }"
-              @click="viewMode = 'table'"
-            >
+            <button class="toggle-btn" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'">
               {{ $t('hop.detail.table') }}
             </button>
           </div>
         </div>
       </div>
-      
+
       <div class="content-container">
         <!-- Chart View -->
-        <PingChart 
-          v-if="viewMode === 'chart'"
-          :aggregated-data="aggregatedData"
-          :selected-interval="selectedInterval"
-        />
-        
+        <PingChart v-if="viewMode === 'chart'" :aggregated-data="aggregatedData"
+          :selected-interval="selectedInterval" />
+
         <!-- Table View -->
-        <PingTable 
-          v-else
-          :aggregated-data="aggregatedData"
-          :selected-interval="selectedInterval"
-          :hop-ip="hop.ip"
-        />
+        <PingTable v-else :aggregated-data="aggregatedData" :selected-interval="selectedInterval" :hop-ip="hop.ip" />
       </div>
     </div>
-
-
   </div>
 </template>
 
@@ -77,18 +59,18 @@ import PingChart from './PingChart.vue'
 import PingTable from './PingTable.vue'
 
 /**
- * Props für die HopDetail-Komponente
+ * Props for the HopDetail component
  */
 interface Props {
-  /** Hop-Informationen */
+  /** Hop information */
   hop: MtrHop
 }
 
 /**
- * Events, die von der HopDetail-Komponente emittiert werden
+ * Events emitted by the HopDetail component
  */
 interface Emits {
-  /** Wird emittiert, wenn der Benutzer zurück zur Tabelle möchte */
+  /** Emitted when the user wants to go back to the table */
   (e: 'back'): void
 }
 
@@ -96,24 +78,24 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 
-/** Aktueller Anzeigemodus */
+/** Current display mode */
 const viewMode = ref<'chart' | 'table'>('chart')
 
-/** Ausgewähltes Zeitintervall */
+/** Selected time interval */
 const selectedInterval = ref<'second' | 'minute' | '5min' | '15min' | '30min' | 'hour' | '2hour'>('second')
 
-/** Aggregierte Daten für diesen Hop */
+/** Aggregated data for this hop */
 const aggregatedData = ref<AggregatedData[]>([])
 const loading = ref(false)
 
 /**
- * Lädt die aggregierten Daten für diesen Hop
+ * Loads aggregated data for this hop
  */
 const loadAggregatedData = async () => {
   try {
     loading.value = true
     const result = await window.electronAPI.getHopAggregatedData(props.hop.hopNumber, selectedInterval.value)
-    
+
     if (result.success) {
       aggregatedData.value = result.data || []
     } else {
@@ -129,38 +111,38 @@ const loadAggregatedData = async () => {
 }
 
 /**
- * Aktualisiert das Zeitintervall
+ * Updates the selected time interval
  */
 const updateInterval = () => {
   loadAggregatedData()
 }
 
-// Reagiere auch auf v-model Änderungen (Sicherheit neben @change)
+// Also react to v-model changes (safety in addition to @change)
 watch(selectedInterval, () => {
   loadAggregatedData()
 })
 
 /**
- * Automatische Aktualisierung jede Sekunde
+ * Automatic update every second
  */
 let updateTimer: NodeJS.Timeout | null = null
 
 /**
- * Lifecycle-Hook: Wird beim Mounten der Komponente ausgeführt
+ * Lifecycle hook: runs when the component is mounted
  */
 onMounted(async () => {
   await nextTick()
-  // Initiale Daten laden
+  // Load initial data
   loadAggregatedData()
-  
-  // Automatische Aktualisierung jede Sekunde für alle Intervalle
+
+  // Automatic update every second for all intervals
   updateTimer = setInterval(() => {
     loadAggregatedData()
   }, 1000)
 })
 
 /**
- * Lifecycle-Hook: Wird beim Unmounten der Komponente ausgeführt
+ * Lifecycle hook: runs when the component is unmounted
  */
 onUnmounted(() => {
   if (updateTimer) {

@@ -2,25 +2,14 @@
   <div id="main-wrapper">
     <div class="container">
       <!-- MTR Configuration -->
-      <ScanConfig 
-        v-if="!isDetailView"
-        :is-scanning="isRunning" 
-        @start-mtr="startMtr"
-        @stop-mtr="stopMtr"
-      />
+      <ScanConfig v-if="!isDetailView" :is-scanning="isRunning" @start-mtr="startMtr" @stop-mtr="stopMtr" />
 
       <!-- MTR Results -->
-      <ScanResults 
-        :mtr-results="mtrResults"
-        @detail-opened="isDetailView = true"
-        @detail-closed="isDetailView = false"
-      />
+      <ScanResults :mtr-results="mtrResults" @detail-opened="isDetailView = true"
+        @detail-closed="isDetailView = false" />
 
       <!-- Footer -->
-      <AppFooter 
-        :progress="progress"
-        :status-message="statusMessage"
-      />
+      <AppFooter :progress="progress" :status-message="statusMessage" />
     </div>
   </div>
 </template>
@@ -35,13 +24,13 @@ import type { MtrConfig, MtrResults, Progress } from './types'
 
 const { t } = useI18n()
 
-/** Gibt an, ob aktuell ein MTR läuft */
+/** Indicates whether an MTR is currently running */
 const isRunning = ref(false)
 
-/** Gibt an, ob die Detail-Ansicht aktiv ist */
+/** Indicates if the detail view is active */
 const isDetailView = ref(false)
 
-/** MTR-Ergebnisse */
+/** MTR results */
 const mtrResults = ref<MtrResults>({
   target: '',
   hops: [],
@@ -49,15 +38,15 @@ const mtrResults = ref<MtrResults>({
   endTime: null
 })
 
-/** Fortschrittsinformationen des aktuellen MTR */
+/** Progress information for the current MTR */
 const progress = ref<Progress>({ currentHop: 0, maxHops: 0, currentIp: '', phase: 'mtr' })
 
-/** Aktuelle Status-Nachricht */
+/** Current status message */
 const statusMessage = ref('')
 
 /**
- * Startet einen neuen MTR mit der übergebenen Konfiguration
- * @param config - MTR-Konfiguration
+ * Starts a new MTR with the given configuration
+ * @param config - MTR configuration
  */
 const startMtr = async (config: MtrConfig) => {
   try {
@@ -72,7 +61,7 @@ const startMtr = async (config: MtrConfig) => {
     statusMessage.value = t('status.scanning')
 
     const result = await window.electronAPI.startMtr(config)
-    
+
     if (!result.success) {
       throw new Error(result.error || 'Unbekannter Fehler beim MTR')
     }
@@ -84,7 +73,7 @@ const startMtr = async (config: MtrConfig) => {
 }
 
 /**
- * Stoppt den aktuellen MTR
+ * Stops the current MTR
  */
 const stopMtr = async () => {
   try {
@@ -98,10 +87,10 @@ const stopMtr = async () => {
 }
 
 /**
- * Event-Handler für importierte MTR-Daten
+ * Event-Handler for imported MTR data
  */
 const handleMtrDataImported = (data: any) => {
-  // Daten sind bereits verarbeitet und kommen fertig vom Backend
+  // Data is already processed and comes fully from the backend
   mtrResults.value = {
     target: data.config.target,
     hops: data.hops,
@@ -112,13 +101,13 @@ const handleMtrDataImported = (data: any) => {
 }
 
 /**
- * Event-Handler für gefundene Hops
- * @param hop - Informationen über den gefundenen Hop
+ * Event-Handler for found hops
+ * @param hop - Information about the found hop
  */
 const handleHopFound = (hop: any) => {
   const existingIndex = mtrResults.value.hops.findIndex(h => h.hopNumber === hop.hopNumber)
   if (existingIndex >= 0) {
-    // Vue reaktivität erzwingen durch Array-Mutation
+    // Force Vue reactivity through array mutation
     mtrResults.value.hops.splice(existingIndex, 1, hop)
   } else {
     mtrResults.value.hops.push(hop)
@@ -132,23 +121,23 @@ const handleHopFound = (hop: any) => {
 const handleHopUpdated = (hop: any) => {
   const existingIndex = mtrResults.value.hops.findIndex(h => h.hopNumber === hop.hopNumber)
   if (existingIndex >= 0) {
-    // Vue reaktivität erzwingen durch Array-Mutation
+    // Force Vue reactivity through array mutation
     mtrResults.value.hops.splice(existingIndex, 1, hop)
   }
 }
 
 /**
- * Event-Handler für Ping-Ergebnisse
- * @param pingResult - Ping-Ergebnis
+ * Event-Handler for ping results
+ * @param pingResult - Ping result
  */
 const handlePingResult = (pingResult: any) => {
-  // Ping-Ergebnisse werden jetzt direkt in den Hops gespeichert
-  // Keine separate pingHistory mehr nötig
+  // Ping results are now stored directly in the hops
+  // No separate pingHistory needed anymore
 }
 
 /**
- * Event-Handler für MTR-Fortschritt
- * @param progressData - Aktuelle Fortschrittsinformationen
+ * Event-Handler for MTR progress
+ * @param progressData - Current progress information
  */
 const handleMtrProgress = (progressData: Progress) => {
   progress.value = progressData
@@ -160,7 +149,7 @@ const handleMtrProgress = (progressData: Progress) => {
 }
 
 /**
- * Event-Handler für MTR-Abschluss
+ * Event-Handler for MTR completion
  */
 const handleMtrComplete = () => {
   isRunning.value = false
@@ -169,11 +158,11 @@ const handleMtrComplete = () => {
 }
 
 /**
- * Lifecycle-Hook: Wird beim Mounten der Komponente ausgeführt
- * Registriert Event-Listener für Electron IPC
+ * Lifecycle-Hook: Executed when the component is mounted
+ * Registers event listeners for Electron IPC
  */
 onMounted(() => {
-  // Event listeners für Electron IPC
+  // Event listeners for Electron IPC
   window.electronAPI.onHopFound(handleHopFound)
   window.electronAPI.onHopUpdated(handleHopUpdated)
   window.electronAPI.onPingResult(handlePingResult)
@@ -183,18 +172,13 @@ onMounted(() => {
 })
 
 /**
- * Lifecycle-Hook: Wird beim Unmounten der Komponente ausgeführt
- * Stoppt laufende MTRs und führt Cleanup durch
+ * Lifecycle-Hook: Executed when the component is unmounted
+ * Stops running MTRs and performs cleanup
  */
 onUnmounted(() => {
-  // Cleanup bei Komponenten-Zerstörung
+  // Cleanup on component destruction
   if (isRunning.value) {
     stopMtr()
   }
 })
 </script>
-
-<style>
-/* Global styles bleiben in der Haupt-App */
-</style>
-

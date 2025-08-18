@@ -1,11 +1,7 @@
 <template>
   <div class="scan-results">
     <!-- Hop Detail View -->
-    <HopDetail 
-      v-if="selectedHop"
-      :hop="selectedHop"
-      @back="closeDetail"
-    />
+    <HopDetail v-if="selectedHop" :hop="selectedHop" @back="closeDetail" />
 
     <!-- Main Results View -->
     <div class="results-wrapper" v-else>
@@ -13,7 +9,7 @@
         <h2>{{ $t('scan.results.title') }}</h2>
         <h3 v-if="mtrResults.hops.length !== 0">{{ $t('scan.results.target') }}: {{ mtrResults.target }}</h3>
       </div>
-      
+
       <div v-if="mtrResults.hops.length === 0" class="no-results">
         <p>{{ $t('scan.results.initOneMessage') }}</p>
         <p>{{ $t('scan.results.initTwoMessage') }}</p>
@@ -36,13 +32,8 @@
                 </tr>
               </thead>
               <tbody>
-                <tr 
-                  v-for="hop in mtrResults.hops" 
-                  :key="hop.hopNumber"
-                  :class="{ 'unreachable': !hop.isReachable }"
-                  @click="selectHop(hop)"
-                  class="clickable-row"
-                >
+                <tr v-for="hop in mtrResults.hops" :key="hop.hopNumber" :class="{ 'unreachable': !hop.isReachable }"
+                  @click="selectHop(hop)" class="clickable-row">
                   <td>{{ hop.hopNumber }}</td>
                   <td>{{ hop.ip }}</td>
                   <td>{{ hop.hostname || '-' }}</td>
@@ -55,7 +46,7 @@
                     {{ hop.averageResponseTime ? `${hop.averageResponseTime.toFixed(1)} ms` : '-' }}
                   </td>
                   <td>
-                    <span style="color: green;">{{ hop.successfulPings }}</span> / 
+                    <span style="color: green;">{{ hop.successfulPings }}</span> /
                     <span style="color: red;">{{ hop.failedPings }}</span>
                   </td>
                 </tr>
@@ -69,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import type { MtrResults, MtrHop } from '../../types'
 import HopDetail from '../hop/HopDetail.vue'
 
@@ -84,22 +75,22 @@ interface Props {
 const props = defineProps<Props>()
 
 /**
- * Events, die von der ScanResults-Komponente emittiert werden
+ * Events, that the ScanResults component emits
  */
 interface Emits {
-  /** Wird emittiert, wenn die Detail-Ansicht geöffnet wird */
+  /** Emitted when the detail view is opened */
   (e: 'detail-opened'): void
-  /** Wird emittiert, wenn die Detail-Ansicht geschlossen wird */
+  /** Emitted when the detail view is closed */
   (e: 'detail-closed'): void
 }
 
 const emit = defineEmits<Emits>()
 
-/** Ausgewählter Hop für die Detail-Ansicht */
+/** Selected hop for the detail view */
 const selectedHop = ref<MtrHop | null>(null)
 
 /**
- * Wählt einen Hop für die Detail-Ansicht aus
+ * Selects a hop for the detail view
  */
 const selectHop = (hop: MtrHop) => {
   selectedHop.value = hop
@@ -107,7 +98,7 @@ const selectHop = (hop: MtrHop) => {
 }
 
 /**
- * Schließt die Detail-Ansicht
+ * Closes the detail view
  */
 const closeDetail = () => {
   selectedHop.value = null

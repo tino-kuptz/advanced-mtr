@@ -4,106 +4,106 @@
 export interface MtrHop {
   /** Hop-Nummer (TTL) */
   hopNumber: number
-  /** IP-Adresse des Hops */
+  /** IP-Address of the hop */
   ip: string
-  /** Hostname des Hops (falls verfügbar) */
+  /** Hostname of the hop (if available) */
   hostname: string | null
-  /** Gibt an, ob der Hop erreichbar ist */
+  /** Indicates if the hop is reachable */
   isReachable: boolean
-  /** Durchschnittliche Antwortzeit in Millisekunden */
+  /** Average response time in milliseconds */
   averageResponseTime: number | null
-  /** Anzahl der erfolgreichen Pings */
+  /** Number of successful pings */
   successfulPings: number
-  /** Anzahl der fehlgeschlagenen Pings */
+  /** Number of failed pings */
   failedPings: number
 }
 
 /**
- * Repräsentiert ein einzelnes Ping-Ergebnis
+ * Represents a single ping result
  */
 export interface PingResult {
-  /** Timestamp, an dem der Ping gesendet wurde */
+  /** Timestamp, when the ping was sent */
   sentTimestamp: number
-  /** IP-Adresse an die der Ping ging */
+  /** IP-Address of the target */
   targetIp: string
-  /** Timestamp, an dem das Paket ankam */
+  /** Timestamp, when the packet arrived */
   responseTimestamp: number | null
-  /** Antwortzeit in Millisekunden (null wenn Timeout) */
+  /** Response time in milliseconds (null if timeout) */
   responseTime: number | null
-  /** Gibt an, ob der Ping erfolgreich war */
+  /** Indicates if the ping was successful */
   isSuccessful: boolean
 }
 
 /**
- * Aggregierte Ping-Daten für verschiedene Zeitintervalle
+ * Aggregated ping data for different time intervals
  */
 export interface AggregatedData {
-  /** Timestamp des Intervalls */
+  /** Timestamp of the interval */
   timestamp: number
-  /** Durchschnittliche Antwortzeit im Intervall */
+  /** Average response time in the interval */
   averageResponseTime: number | null
-  /** Anzahl erfolgreicher Pings im Intervall */
+  /** Number of successful pings in the interval */
   successfulPings: number
-  /** Anzahl fehlgeschlagener Pings im Intervall */
+  /** Number of failed pings in the interval */
   failedPings: number
-  /** Gesamtanzahl Pings im Intervall */
+  /** Total number of pings in the interval */
   totalPings: number
-  /** Gibt an, ob es Timeouts im Intervall gab */
+  /** Indicates if there were timeouts in the interval */
   hasAnyTimeout: boolean
-  /** Kleinste Antwortzeit im Intervall */
+  /** Smallest response time in the interval */
   minResponseTime: number | null
-  /** Größte Antwortzeit im Intervall */
+  /** Maximum response time in the interval */
   maxResponseTime: number | null
 }
 
 /**
- * Konfiguration für MTR und Ping
+ * Configuration for MTR and Ping
  */
 export interface MtrConfig {
-  /** Ziel-IP oder Domain */
+  /** Target IP or domain */
   target: string
-  /** Maximale Anzahl von Hops */
+  /** Maximum number of hops */
   maxHops: number
-  /** Timeout in Millisekunden für einzelne Pings */
+  /** Timeout in milliseconds for individual pings */
   timeout: number
-  /** Anzahl der Pings pro Hop für die Routenbestimmung */
+  /** Number of pings per hop for route determination */
   probesPerHop: number
 }
 
 /**
- * Fortschrittsinformationen während MTR/Ping
+ * Progress information during MTR/Ping
  */
 export interface Progress {
-  /** Aktueller Hop */
+  /** Current hop */
   currentHop: number
-  /** Maximale Anzahl von Hops */
+  /** Maximum number of hops */
   maxHops: number
-  /** Aktuell gepingte IP */
+  /** Currently pinged IP */
   currentIp: string
-  /** Aktuelle Phase: 'mtr' oder 'ping' */
+  /** Current phase: 'mtr' or 'ping'. Old, in the past I had the idea to combine my ping and traceroute tool */
   phase: 'mtr' | 'ping'
 }
 
 /**
- * MTR-Ergebnisse mit allen Hops
+ * MTR results with all hops
  */
 export interface MtrResults {
   /** Ziel-IP oder Domain */
   target: string
-  /** Gefundene Hops */
+  /** Found hops */
   hops: MtrHop[]
-  /** Start-Zeit des MTR */
+  /** Start time of the MTR */
   startTime: number
-  /** End-Zeit des MTR (null wenn noch läuft) */
+  /** End time of the MTR (null if still running) */
   endTime: number | null
 }
 
 /**
- * Importierte MTR-Daten
+ * Imported MTR data
  */
 export interface ImportedMtrData {
-  /** MTR-Konfiguration */
+  /** MTR configuration */
   config: MtrConfig
-  /** Gefundene Hops */
+  /** Found hops */
   hops: MtrHop[]
 }

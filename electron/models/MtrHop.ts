@@ -36,7 +36,7 @@ export class MtrHop extends EventEmitter {
   }
 
   /**
-   * Fügt ein Ping-Ergebnis hinzu
+   * Adds a ping result
    */
   addPingResult(sentTimestamp: number, responseTimestamp: number | null, responseTime: number | null): void {
     const pingData: PingData = {
@@ -45,9 +45,9 @@ export class MtrHop extends EventEmitter {
       responseTime,
       isSuccessful: responseTime !== null
     }
-    
+
     this.pingHistory.push(pingData)
-    
+
     if (responseTime !== null) {
       this.responseTimes.push(responseTime)
       this.successfulPings++
@@ -55,12 +55,12 @@ export class MtrHop extends EventEmitter {
     } else {
       this.failedPings++
     }
-    
+
     this.emit('ping-updated')
   }
 
   /**
-   * Setzt den Hostname für diesen Hop
+   * Sets the hostname for this hop
    */
   setHostname(hostname: string): void {
     this.hostname = hostname
@@ -68,7 +68,7 @@ export class MtrHop extends EventEmitter {
   }
 
   /**
-   * Markiert den Hop als erreichbar
+   * Marks the hop as reachable
    */
   setReachable(reachable: boolean): void {
     this.isReachable = reachable
@@ -76,7 +76,7 @@ export class MtrHop extends EventEmitter {
   }
 
   /**
-   * Berechnet die durchschnittliche Antwortzeit
+   * Calculates the average response time
    */
   private getAverageResponseTime(): number | null {
     if (this.responseTimes.length === 0) {
@@ -86,7 +86,7 @@ export class MtrHop extends EventEmitter {
   }
 
   /**
-   * Gibt aggregierte Daten für verschiedene Zeitintervalle zurück
+   * Returns aggregated data for different time intervals
    */
   getAggregatedData(interval: string): AggregatedData[] {
     if (this.pingHistory.length === 0) {
@@ -96,7 +96,7 @@ export class MtrHop extends EventEmitter {
     const intervalMs = this.getIntervalMs(interval)
     const groups: { [key: string]: PingData[] } = {}
 
-    // Gruppiere Pings nach Zeitintervallen
+    // Group pings by time intervals
     this.pingHistory.forEach(ping => {
       const intervalStart = Math.floor(ping.sentTimestamp / intervalMs) * intervalMs
       const key = intervalStart.toString()
@@ -107,10 +107,10 @@ export class MtrHop extends EventEmitter {
       groups[key].push(ping)
     })
 
-    // Sortiere Gruppen nach Zeitstempel
+    // Sort groups by timestamp
     const sortedKeys = Object.keys(groups).sort((a, b) => parseInt(a) - parseInt(b))
 
-    // Bei Sekundenansicht nur die letzten 120 Sekunden anzeigen
+    // In second view, only show the last 120 seconds
     let displayKeys = sortedKeys
     if (interval === 'second') {
       displayKeys = sortedKeys.slice(-120)
@@ -148,7 +148,7 @@ export class MtrHop extends EventEmitter {
   }
 
   /**
-   * Berechnet die Millisekunden für das ausgewählte Intervall
+   * Calculates the milliseconds for the selected interval
    */
   private getIntervalMs(interval: string): number {
     switch (interval) {
@@ -164,7 +164,7 @@ export class MtrHop extends EventEmitter {
   }
 
   /**
-   * Konvertiert das Objekt in das API-Format
+   * Converts the object to the API format
    */
   async toApi(): Promise<MtrHopType> {
     return {
@@ -179,7 +179,7 @@ export class MtrHop extends EventEmitter {
   }
 
   /**
-   * Gibt die Ping-Historie für Export/Import zurück
+   * Returns the ping history for export/import
    */
   getPingHistoryForExport(): { s: number; e: number | null }[] {
     return this.pingHistory.map(ping => ({
@@ -189,29 +189,26 @@ export class MtrHop extends EventEmitter {
   }
 
   /**
-   * Setzt die Ping-Historie aus Import-Daten
+   * Sets ping history from imported data
    */
-  setPingHistoryFromImport(pingData: { s: number; e: number | null }[]): void {
+  setPingHistoryFromImport(importedHistory: { s: number; e: number | null }[]): void {
     this.pingHistory = []
     this.responseTimes = []
     this.successfulPings = 0
     this.failedPings = 0
 
-    pingData.forEach(data => {
-      const responseTime = data.e ? data.e - data.s : null
-      const isSuccessful = data.e !== null
-      
+    importedHistory.forEach(item => {
       const pingData: PingData = {
-        sentTimestamp: data.s,
-        responseTimestamp: data.e,
-        responseTime,
-        isSuccessful
+        sentTimestamp: item.s,
+        responseTimestamp: item.e,
+        responseTime: item.e ? item.e - item.s : null,
+        isSuccessful: item.e !== null
       }
-      
+
       this.pingHistory.push(pingData)
-      
-      if (isSuccessful && responseTime !== null) {
-        this.responseTimes.push(responseTime)
+
+      if (pingData.responseTime !== null) {
+        this.responseTimes.push(pingData.responseTime)
         this.successfulPings++
         this.isReachable = true
       } else {
@@ -220,7 +217,19 @@ export class MtrHop extends EventEmitter {
     })
   }
 
-  // Getter-Methoden
+  /**
+   * Cleanup method for app shutdown
+   */
+  cleanup(): void {
+    // Remove all event listeners
+    this.removeAllListeners()
+    
+    // Clear arrays to free memory
+    this.pingHistory = []
+    this.responseTimes = []
+  }
+
+  // Getter methods
   getHopNumber(): number {
     return this.hopNumber
   }

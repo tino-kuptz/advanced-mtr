@@ -78,21 +78,21 @@ function createMenu() {
                   return
                 }
 
-                                const rawImportedData = ExportService.importFromFile(filePath)
-                
-                // Verarbeite die Daten mit dem ImportService
+                const rawImportedData = ExportService.importFromFile(filePath)
+
+                // Process the data with the ImportService
                 const processedData = ImportService.processImportedData(rawImportedData)
-                
-                // Erstelle MtrHop-Objekte für das Backend
+
+                // Create MtrHop objects for the backend
                 const hopObjects = ImportService.createMtrHopObjects(rawImportedData)
-                
-                // Setze die aktuellen MTR-Daten
+
+                // Set the current MTR data
                 currentMtrData = {
                   config: processedData.config,
                   hops: hopObjects
                 }
-                
-                // Sende verarbeitete Daten an das Frontend
+
+                // Send processed data to the frontend
                 mainWindow?.webContents.send('mtr-data-imported', processedData)
 
                 dialog.showMessageBox(mainWindow!, {
@@ -161,7 +161,7 @@ function createWindow() {
     show: false
   })
 
-  // Menü erstellen
+  // Create menu
   createMenu()
 
   // Content Security Policy setzen
@@ -176,7 +176,7 @@ function createWindow() {
     })
   })
 
-  // Öffne Links mit target=_blank in Stanadrdbrowser
+  // Open links with target=_blank in standard browser
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -187,7 +187,8 @@ function createWindow() {
     mainWindow?.show()
   })
 
-  // Im Entwicklungsmodus laden wir von localhost:5173
+  // In development mode, we load from localhost:5173
+  // In production mode, we load from the dist folder
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
@@ -198,7 +199,23 @@ function createWindow() {
 
 app.whenReady().then(createWindow)
 
+// Cleanup handlers for app shutdown
+app.on('before-quit', () => {
+  if (mtrService) {
+    mtrService.cleanup()
+    mtrService = null
+  }
+  currentMtrData = null
+})
+
 app.on('window-all-closed', () => {
+  // Cleanup before quitting
+  if (mtrService) {
+    mtrService.cleanup()
+    mtrService = null
+  }
+  currentMtrData = null
+  
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -210,22 +227,22 @@ app.on('activate', () => {
   }
 })
 
-// IPC Handler für MTR
+// IPC handlers for MTR
 ipcMain.handle('start-mtr', async (event, mtrConfig) => {
   try {
     mtrService = new MtrService()
 
-    // Aktuelle MTR-Daten initialisieren
+    // Initialize current MTR data
     currentMtrData = {
       config: mtrConfig,
       hops: new Map()
     }
 
-    // Event-Handler für MTR-Updates
+    // Event handlers for MTR updates
     mtrService.on('hop-found', async (hop: any) => {
-      // Hop zu den aktuellen Daten hinzufügen (als MtrHop-Instanz)
+      // Add hop to current data (as MtrHop instance)
       if (currentMtrData) {
-        // Finde die ursprüngliche MtrHop-Instanz aus dem MtrService
+        // Find the original MtrHop instance from MtrService
         const originalHop = mtrService?.getHop(hop.hopNumber)
         if (originalHop) {
           currentMtrData.hops.set(hop.hopNumber, originalHop)
@@ -235,9 +252,9 @@ ipcMain.handle('start-mtr', async (event, mtrConfig) => {
     })
 
     mtrService.on('hop-updated', async (hop: any) => {
-      // Hop in den aktuellen Daten aktualisieren (als MtrHop-Instanz)
+      // Update hop in current data (as MtrHop instance)
       if (currentMtrData) {
-        // Finde die ursprüngliche MtrHop-Instanz aus dem MtrService
+        // Find the original MtrHop instance from MtrService
         const originalHop = mtrService?.getHop(hop.hopNumber)
         if (originalHop) {
           currentMtrData.hops.set(hop.hopNumber, originalHop)
@@ -247,7 +264,7 @@ ipcMain.handle('start-mtr', async (event, mtrConfig) => {
     })
 
     mtrService.on('ping-result', (pingResult: any) => {
-      // Ping-Ergebnis wird jetzt direkt in den Hops gespeichert
+      // Ping result is now stored directly in the hops
       mainWindow?.webContents.send('ping-result', pingResult)
     })
 
@@ -270,12 +287,13 @@ ipcMain.handle('start-mtr', async (event, mtrConfig) => {
 ipcMain.handle('stop-mtr', async () => {
   if (mtrService) {
     await mtrService.stopMtr()
+    mtrService.cleanup()
     mtrService = null
   }
   return { success: true }
 })
 
-// Neue IPC-Handler für Datenabfrage
+// IPC handlers for data queries
 ipcMain.handle('get-hop-aggregated-data', async (event, hopNumber: number, interval: string) => {
   if (!currentMtrData) {
     return { success: false, error: 'Keine MTR-Daten verfügbar' }

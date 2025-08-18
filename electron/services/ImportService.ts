@@ -8,17 +8,17 @@ export interface ImportedMtrData {
 
 export class ImportService {
   /**
-   * Verarbeitet importierte MTR-Daten und erstellt Hop-Objekte mit korrekten Statistiken
+   * Processes imported MTR data and creates hop objects with correct statistics
    */
   static processImportedData(rawData: any): ImportedMtrData {
-    // Hops mit berechneten Statistiken erstellen
+    // Create hops with calculated statistics
     const hopsWithStats = Array.from(rawData.hops.values()).map((hop: any) => {
-      // Berechne Statistiken basierend auf den Ping-Daten
+      // Calculate statistics based on ping data
       const successfulPings = hop.getSuccessfulPings ? hop.getSuccessfulPings() : (hop.successfulPings || 0)
       const failedPings = hop.getFailedPings ? hop.getFailedPings() : (hop.failedPings || 0)
       const totalPings = successfulPings + failedPings
       
-      // Berechne durchschnittliche Antwortzeit (falls vorhanden)
+      // Calculate average response time (if available)
       let averageResponseTime = null
       if (hop.getAverageResponseTime) {
         averageResponseTime = hop.getAverageResponseTime()
@@ -44,7 +44,7 @@ export class ImportService {
   }
 
   /**
-   * Konvertiert importierte Daten in MtrHop-Objekte für das Backend
+   * Converts imported data to MtrHop objects for the backend
    */
   static createMtrHopObjects(rawData: any): Map<number, MtrHop> {
     const hops = new Map<number, MtrHop>()
@@ -59,7 +59,7 @@ export class ImportService {
         hop.setHostname(hostname)
       }
       
-      // Ping-Historie wiederherstellen (falls vorhanden)
+      // Restore ping history (if available)
       if (hopData.getPingHistoryForExport) {
         const pingHistory = hopData.getPingHistoryForExport()
         if (pingHistory && Array.isArray(pingHistory)) {

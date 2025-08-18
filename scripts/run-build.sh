@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# IP Scanner Build Script
-# Erstellt Electron-Binaries für Windows, Linux und macOS
+# Advanced MTR Build Script
+# Creates Electron binaries for Windows, Linux and macOS
 
 set -e  # Exit on any error
 
-echo "Building IP Scanner for all platforms..."
+echo "Building Advanced MTR for all platforms..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -31,37 +31,37 @@ print_warning() {
     echo -e "${YELLOW}$1${NC}"
 }
 
-# Prüfe ob wir im richtigen Verzeichnis sind
+# Check if we are in the right directory
 if [ ! -f "package.json" ]; then
     print_error "Error: package.json not found. Please run this script from the project root."
     exit 1
 fi
 
-# Prüfe ob Node.js installiert ist
+# Check if Node.js is installed
 if ! command -v node &> /dev/null; then
     print_error "Node.js is not installed. Please install Node.js first."
     exit 1
 fi
 
-# Prüfe ob npm installiert ist
+# Check if npm is installed
 if ! command -v npm &> /dev/null; then
     print_error "npm is not installed. Please install npm first."
     exit 1
 fi
 
-# Erstelle Release-Verzeichnis
+# Create release directory
 print_status "Creating release directory..."
 mkdir -p release
 
-# Lösche vorherige Builds
+# Clean previous builds
 print_status "Cleaning previous builds..."
 rm -rf dist dist-electron release/*
 
-# Installiere Dependencies falls nötig
+# Install dependencies if needed
 print_status "Checking dependencies..."
 npm install
 
-# Baue Vue.js Anwendung
+# Build Vue.js application
 print_status "Building Vue.js application..."
 if npx vite build; then
     print_success "Vue.js build completed"
@@ -70,7 +70,7 @@ else
     exit 1
 fi
 
-# Baue Electron-Dateien
+# Build Electron files
 print_status "Building Electron files..."
 if node build.js; then
     print_success "Electron build completed"
@@ -79,7 +79,7 @@ else
     exit 1
 fi
 
-# Baue für alle Plattformen
+# Build for all platforms
 print_status "Building for all platforms..."
 if npm run dist; then
     print_success "All platform builds completed"
@@ -88,16 +88,16 @@ else
     exit 1
 fi
 
-# Verschiebe Builds ins Release-Verzeichnis
+# Move builds to release directory
 print_status "Moving builds to release directory..."
 if [ -d "dist" ]; then
     cp -r dist/* release/ 2>/dev/null || true
 fi
 
-# Liste erstellte Dateien
+# List created files
 print_status "Created files:"
 if [ -d "release" ]; then
-    find release -type f -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" | while read file; do
+    find release -type f -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" | while read file; do
         print_success "  $(basename "$file")"
     done
 fi
@@ -106,6 +106,6 @@ print_success "Build process completed!"
 print_status "Check the 'release' directory for your builds"
 print_status ""
 print_status "Available platforms:"
-print_status "  macOS: .dmg files"
+print_status "  macOS: .zip files"
 print_status "  Windows: .exe files"
 print_status "  Linux: .AppImage, .deb, .rpm files"
