@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu, dialog, shell } from 'electron'
 import { join } from 'path'
 import { MtrService } from './services/MtrService'
 import { ExportService } from './services/ExportService'
+import { ImportService } from './services/ImportService'
 
 let mainWindow: BrowserWindow | null = null
 let mtrService: MtrService | null = null
@@ -77,18 +78,22 @@ function createMenu() {
                   return
                 }
 
-                const importedData = ExportService.importFromFile(filePath)
-                currentMtrData = importedData
-
-                // Daten an das Frontend senden
-                mainWindow?.webContents.send('mtr-data-imported', {
-                  config: importedData.config,
-                  hops: Array.from(importedData.hops.values()).map(hop => ({
-                    hopNumber: hop.getHopNumber(),
-                    ip: hop.getIp(),
-                    hostname: hop.getHostname()
-                  }))
-                })
+                                const rawImportedData = ExportService.importFromFile(filePath)
+                
+                // Verarbeite die Daten mit dem ImportService
+                const processedData = ImportService.processImportedData(rawImportedData)
+                
+                // Erstelle MtrHop-Objekte für das Backend
+                const hopObjects = ImportService.createMtrHopObjects(rawImportedData)
+                
+                // Setze die aktuellen MTR-Daten
+                currentMtrData = {
+                  config: processedData.config,
+                  hops: hopObjects
+                }
+                
+                // Sende verarbeitete Daten an das Frontend
+                mainWindow?.webContents.send('mtr-data-imported', processedData)
 
                 dialog.showMessageBox(mainWindow!, {
                   type: 'info',

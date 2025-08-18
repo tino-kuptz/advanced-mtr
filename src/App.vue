@@ -98,17 +98,10 @@ const stopMtr = async () => {
  * Event-Handler für importierte MTR-Daten
  */
 const handleMtrDataImported = (data: any) => {
-  // Hops mit berechneten Statistiken erstellen
-  const hopsWithStats = data.hops.map((hop: any) => {
-    return {
-      ...hop,
-      isReachable: hop.successfulPings > 0
-    }
-  })
-  
+  // Daten sind bereits verarbeitet und kommen fertig vom Backend
   mtrResults.value = {
     target: data.config.target,
-    hops: hopsWithStats,
+    hops: data.hops,
     startTime: Date.now(),
     endTime: null
   }
