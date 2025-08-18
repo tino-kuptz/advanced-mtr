@@ -8,7 +8,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { AggregatedData } from '../types'
+
+const { t } = useI18n()
 
 interface Props {
     aggregatedData: AggregatedData[]
@@ -60,7 +63,7 @@ const chartSeries = computed(() => {
     const data = chartData.value
     return [
         {
-            name: props.selectedInterval === 'second' ? 'ms' : 'Avg. ms',
+            name: t('ping.chart.responseTime'),
             type: 'line',
             data: data.avgPoints
         }

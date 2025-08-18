@@ -27,10 +27,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ScanConfig from './components/ScanConfig.vue'
 import ScanResults from './components/ScanResults.vue'
 import AppFooter from './components/AppFooter.vue'
 import type { MtrConfig, MtrResults, Progress } from './types'
+
+const { t } = useI18n()
 
 /** Gibt an, ob aktuell ein MTR läuft */
 const isRunning = ref(false)
@@ -66,7 +69,7 @@ const startMtr = async (config: MtrConfig) => {
       endTime: null
     }
     progress.value = { currentHop: 0, maxHops: config.maxHops, currentIp: config.target, phase: 'mtr' }
-    statusMessage.value = 'MTR wird gestartet...'
+    statusMessage.value = t('status.scanning')
 
     const result = await window.electronAPI.startMtr(config)
     
@@ -88,7 +91,7 @@ const stopMtr = async () => {
     await window.electronAPI.stopMtr()
     isRunning.value = false
     mtrResults.value.endTime = Date.now()
-    statusMessage.value = 'MTR gestoppt'
+    statusMessage.value = t('status.stopped')
   } catch (error) {
     console.error('Stop MTR error:', error)
   }
@@ -105,7 +108,7 @@ const handleMtrDataImported = (data: any) => {
     startTime: Date.now(),
     endTime: null
   }
-  statusMessage.value = 'MTR-Daten erfolgreich importiert'
+  statusMessage.value = t('status.dataImported')
 }
 
 /**
@@ -150,9 +153,9 @@ const handlePingResult = (pingResult: any) => {
 const handleMtrProgress = (progressData: Progress) => {
   progress.value = progressData
   if (progressData.phase === 'mtr') {
-    statusMessage.value = `MTR: Hop ${progressData.currentHop}/${progressData.maxHops} - ${progressData.currentIp}`
+    statusMessage.value = t('status.mtrProgress', { current: progressData.currentHop, max: progressData.maxHops, ip: progressData.currentIp })
   } else {
-    statusMessage.value = `Ping: ${progressData.currentIp}`
+    statusMessage.value = t('status.pingProgress', { ip: progressData.currentIp })
   }
 }
 
@@ -162,7 +165,7 @@ const handleMtrProgress = (progressData: Progress) => {
 const handleMtrComplete = () => {
   isRunning.value = false
   mtrResults.value.endTime = Date.now()
-  statusMessage.value = 'MTR abgeschlossen'
+  statusMessage.value = t('status.completed')
 }
 
 /**

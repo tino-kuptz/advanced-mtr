@@ -3,19 +3,19 @@
     <!-- Target Input -->
     <div class="scan-controls">
       <div class="form-group">
-        <label for="target">Ziel (IP oder Domain)</label>
+        <label for="target">{{ $t('scan.config.target') }}</label>
         <input 
           id="target" 
           v-model="mtrConfig.target" 
           type="text" 
-          placeholder="8.8.8.8 oder google.com" 
+          :placeholder="$t('scan.config.targetPlaceholder')" 
           :disabled="isScanning"
         />
       </div>
 
       <!-- MTR Configuration -->
       <div class="form-group">
-        <label for="maxHops">Max. Hops</label>
+        <label for="maxHops">{{ $t('scan.config.maxHops') }}</label>
         <input 
           id="maxHops" 
           v-model.number="mtrConfig.maxHops" 
@@ -27,7 +27,7 @@
       </div>
 
       <div class="form-group">
-        <label for="timeout">Timeout (ms)</label>
+        <label for="timeout">{{ $t('scan.config.timeout') }}</label>
         <input 
           id="timeout" 
           v-model.number="mtrConfig.timeout" 
@@ -42,10 +42,10 @@
       <button class="scan-button" @click="toggleMtr" :disabled="!isValidConfig">
         <span v-if="props.isScanning">
           <span class="loading"></span>
-          Stoppen
+          {{ $t('scan.config.stopButton') }}
         </span>
         <span v-else>
-          MTR starten
+          {{ $t('scan.config.startButton') }}
         </span>
       </button>
     </div>

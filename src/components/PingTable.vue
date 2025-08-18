@@ -6,14 +6,14 @@
           <th>
             IP
           </th>
-          <th>Zeitstempel</th>
+          <th>{{ $t('ping.table.timestamp') }}</th>
           <th>
-            Ping 
+            {{ $t('ping.table.responseTime') }}
             <template v-if="props.selectedInterval !== 'second'">
               min/max/avg
             </template>
           </th>
-          <th v-if="props.selectedInterval !== 'second'">Drops</th>
+          <th v-if="props.selectedInterval !== 'second'">{{ $t('ping.table.status') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -35,7 +35,7 @@
                 {{ group.avg.toFixed(1) }} ms
               </template>
             </span>
-            <span v-else class="no-data">Timeout</span>
+            <span v-else class="no-data">{{ $t('ping.table.timeout') }}</span>
           </td>
           <td v-if="props.selectedInterval !== 'second'">
             <span :class="group.drops > 0 ? 'status-offline' : 'status-online'">
@@ -50,7 +50,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { AggregatedData } from '../types'
+
+const { t } = useI18n()
 
 interface Props {
   aggregatedData: AggregatedData[]

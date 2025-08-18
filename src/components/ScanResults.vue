@@ -9,28 +9,28 @@
 
     <!-- Main Results View -->
     <div v-else>
-      <h2>MTR Ergebnisse</h2>
+      <h2>{{ $t('scan.results.title') }}</h2>
       
       <div v-if="mtrResults.hops.length === 0" class="no-results">
-        <p>Noch keine MTR-Ergebnisse verfügbar.</p>
-        <p>Geben Sie eine IP-Adresse oder Domain ein und starten Sie den MTR.</p>
-        <p style="opacity: 0.5;">Der erste Scan kann bis zu 2 Minuten dauern. Dies ist normal.</p>
+        <p>{{ $t('scan.results.initOneMessage') }}</p>
+        <p>{{ $t('scan.results.initTwoMessage') }}</p>
+        <p style="opacity: 0.5;">{{ $t('scan.results.initThreeMessage') }}</p>
       </div>
 
       <div v-else class="results-container">
         <!-- MTR Hops Table -->
         <div class="hops-section">
-          <h3>Route zu {{ mtrResults.target }}</h3>
+          <h3>{{ $t('scan.results.target') }}: {{ mtrResults.target }}</h3>
           <div class="table-container">
             <table class="hops-table">
               <thead>
                 <tr>
-                  <th>Hop</th>
-                  <th>IP-Adresse</th>
-                  <th>Hostname</th>
-                  <th>Status</th>
-                  <th>Ø Ping</th>
-                  <th>Pings OK/Fehler</th>
+                  <th>{{ $t('scan.results.hopNumber') }}</th>
+                  <th>{{ $t('scan.results.ip') }}</th>
+                  <th>{{ $t('scan.results.hostname') }}</th>
+                  <th>{{ $t('scan.results.status') }}</th>
+                  <th>{{ $t('scan.results.avgResponse') }}</th>
+                  <th>{{ $t('scan.results.successfulPings') }}/{{ $t('scan.results.failedPings') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -46,7 +46,7 @@
                   <td>{{ hop.hostname || '-' }}</td>
                   <td>
                     <span :class="hop.isReachable ? 'status-online' : 'status-offline'">
-                      {{ hop.isReachable ? 'Online' : 'Offline' }}
+                      {{ hop.isReachable ? $t('scan.results.reachable') : $t('scan.results.unreachable') }}
                     </span>
                   </td>
                   <td>

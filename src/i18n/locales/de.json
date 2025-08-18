@@ -1,0 +1,143 @@
+{
+  "app": {
+    "title": "Advanced MTR",
+    "footer": {
+      "copyright": "© 2025 Tino Kuptz.",
+      "github": "GitHub"
+    }
+  },
+  "scan": {
+    "config": {
+      "title": "MTR Konfiguration",
+      "target": "Ziel",
+      "targetPlaceholder": "IP-Adresse oder Domain eingeben",
+      "maxHops": "Max Hops",
+      "timeout": "Timeout (ms)",
+      "probesPerHop": "Sonden pro Hop",
+      "startButton": "MTR starten",
+      "stopButton": "Stoppen",
+      "loading": "Lädt..."
+    },
+    "results": {
+      "title": "Scan Ergebnisse",
+      "noResults": "Keine Scan-Ergebnisse verfügbar",
+      "initOneMessage": "Bitte geben Sie oben IP oder Domain ein und klicken Sie auf MTR starten.",
+      "initTwoMessage": "Advanced MTR wird dann erst einen traceroute, und dann einen ping für jeden Hop ausführen.",
+      "initThreeMessage": "Der erste Scan kann einige Sekunden dauern.",
+      "target": "Ziel",
+      "hopNumber": "Hop",
+      "ip": "IP-Adresse",
+      "hostname": "Hostname",
+      "status": "Status",
+      "avgResponse": "Durchschn. Antwort",
+      "successfulPings": "Erfolgreich",
+      "failedPings": "Fehlgeschlagen",
+      "reachable": "Erreichbar",
+      "unreachable": "Nicht erreichbar",
+      "details": "Details",
+      "close": "Schließen"
+    }
+  },
+  "hop": {
+    "detail": {
+      "title": "Hop Details",
+      "hopNumber": "Hop {number}",
+      "ip": "IP-Adresse",
+      "hostname": "Hostname",
+      "status": "Status",
+      "statistics": "Statistiken",
+      "pingHistory": "Ping Historie",
+      "chart": "Antwortzeit Diagramm",
+      "table": "Ping Tabelle",
+      "interval": "Intervall",
+      "second": "Sekunde",
+      "minute": "Minute",
+      "5min": "5 Minuten",
+      "15min": "15 Minuten",
+      "30min": "30 Minuten",
+      "hour": "Stunde",
+      "2hour": "2 Stunden"
+    }
+  },
+  "ping": {
+    "chart": {
+      "title": "Antwortzeit Diagramm",
+      "responseTime": "Antwortzeit (ms)",
+      "time": "Zeit",
+      "timeouts": "Timeouts"
+    },
+    "table": {
+      "title": "Ping Tabelle",
+      "timestamp": "Zeitstempel",
+      "responseTime": "Antwortzeit",
+      "status": "Status",
+      "successful": "Erfolgreich",
+      "timeout": "Timeout",
+      "noData": "Keine Ping-Daten verfügbar"
+    }
+  },
+  "status": {
+    "ready": "Bereit",
+    "scanning": "Scanne...",
+    "stopped": "Gestoppt",
+    "completed": "Abgeschlossen",
+    "error": "Fehler",
+    "mtrProgress": "MTR: Hop {current}/{max} - {ip}",
+    "pingProgress": "Ping: {ip}",
+    "dataImported": "MTR-Daten erfolgreich importiert",
+    "noDataToSave": "Keine MTR-Daten zum Speichern verfügbar"
+  },
+  "menu": {
+    "file": "Datei",
+    "save": "MTR speichern",
+    "load": "MTR laden",
+    "quit": "Beenden",
+    "edit": "Bearbeiten",
+    "view": "Ansicht",
+    "language": "Sprache",
+    "english": "Englisch",
+    "german": "Deutsch"
+  },
+  "dialogs": {
+    "save": {
+      "title": "MTR-Daten speichern",
+      "defaultName": "mtr-{target}-{date}.mtr",
+      "filters": "MTR-Dateien",
+      "allFiles": "Alle Dateien",
+      "success": "MTR-Daten wurden erfolgreich in {path} gespeichert",
+      "error": "Fehler beim Speichern der Datei: {error}"
+    },
+    "load": {
+      "title": "MTR-Datei öffnen",
+      "filters": "MTR-Dateien",
+      "allFiles": "Alle Dateien",
+      "success": "MTR-Daten wurden erfolgreich aus {path} geladen",
+      "error": "Fehler beim Laden der Datei: {error}",
+      "invalidFile": "Die ausgewählte Datei ist keine gültige MTR-Datei."
+    },
+    "noData": {
+      "title": "Keine Daten",
+      "message": "Es sind keine MTR-Daten zum Speichern verfügbar."
+    }
+  },
+  "validation": {
+    "targetRequired": "Ziel ist erforderlich",
+    "targetInvalid": "Bitte geben Sie eine gültige IP-Adresse oder Domain ein",
+    "maxHopsRange": "Max Hops muss zwischen 1 und 64 liegen",
+    "timeoutRange": "Timeout muss zwischen 1000 und 30000 ms liegen",
+    "probesRange": "Sonden pro Hop muss zwischen 1 und 10 liegen"
+  },
+  "common": {
+    "back": "Zurück",
+    "close": "Schließen",
+    "loading": "Lädt...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "load": "Laden",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "view": "Anzeigen"
+  }
+}

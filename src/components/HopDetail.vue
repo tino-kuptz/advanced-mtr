@@ -4,29 +4,29 @@
     <div class="hop-header">
       <button class="back-button" @click="$emit('back')">
         <span class="back-arrow">←</span>
-        Zurück
+        {{ $t('common.back') }}
       </button>
       <div class="hop-info">
         <h1 class="hop-ip">{{ hop.ip }}</h1>
-        <h2 class="hop-hostname">{{ hop.hostname || 'Hostname nicht bekannt' }}</h2>
+        <h2 class="hop-hostname">{{ hop.hostname || $t('hop.detail.hostname') }}</h2>
       </div>
     </div>
 
     <!-- Chart/Table Section -->
     <div class="chart-section">
       <div class="view-controls">
-        <h3>Ping-Verlauf</h3>
+        <h3>{{ $t('hop.detail.pingHistory') }}</h3>
         <div class="controls-container">
           <div class="interval-selector">
-            <label>Zeitintervall:</label>
+            <label>{{ $t('hop.detail.interval') }}:</label>
             <select v-model="selectedInterval" @change="updateInterval">
-              <option value="second">Sekündlich</option>
-              <option value="minute">Minütlich</option>
-              <option value="5min">5 Minuten</option>
-              <option value="15min">15 Minuten</option>
-              <option value="30min">30 Minuten</option>
-              <option value="hour">Stündlich</option>
-              <option value="2hour">2 Stunden</option>
+              <option value="second">{{ $t('hop.detail.second') }}</option>
+              <option value="minute">{{ $t('hop.detail.minute') }}</option>
+              <option value="5min">{{ $t('hop.detail.5min') }}</option>
+              <option value="15min">{{ $t('hop.detail.15min') }}</option>
+              <option value="30min">{{ $t('hop.detail.30min') }}</option>
+              <option value="hour">{{ $t('hop.detail.hour') }}</option>
+              <option value="2hour">{{ $t('hop.detail.2hour') }}</option>
             </select>
           </div>
           <div class="view-toggle">
@@ -35,14 +35,14 @@
               :class="{ active: viewMode === 'chart' }"
               @click="viewMode = 'chart'"
             >
-              Chart
+              {{ $t('hop.detail.chart') }}
             </button>
             <button 
               class="toggle-btn" 
               :class="{ active: viewMode === 'table' }"
               @click="viewMode = 'table'"
             >
-              Tabelle
+              {{ $t('hop.detail.table') }}
             </button>
           </div>
         </div>
@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
+import { ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import type { MtrHop, AggregatedData } from '../types'
 import PingChart from './PingChart.vue'
 import PingTable from './PingTable.vue'
@@ -95,7 +95,6 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const chartContainer = ref<HTMLElement>()
 
 /** Aktueller Anzeigemodus */
 const viewMode = ref<'chart' | 'table'>('chart')

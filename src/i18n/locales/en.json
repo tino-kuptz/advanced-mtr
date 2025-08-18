@@ -1,0 +1,143 @@
+{
+  "app": {
+    "title": "Advanced MTR",
+    "footer": {
+      "copyright": "© 2025 Tino Kuptz.",
+      "github": "GitHub"
+    }
+  },
+  "scan": {
+    "config": {
+      "title": "MTR Configuration",
+      "target": "Target",
+      "targetPlaceholder": "Enter IP address or domain",
+      "maxHops": "Max Hops",
+      "timeout": "Timeout (ms)",
+      "probesPerHop": "Probes per Hop",
+      "startButton": "Start MTR",
+      "stopButton": "Stop",
+      "loading": "Loading..."
+    },
+    "results": {
+      "title": "Scan Results",
+      "noResults": "No scan results available",
+      "initOneMessage": "Please enter an IP address or domain above and click on MTR start.",
+      "initTwoMessage": "Advanced MTR will then perform a traceroute and then a ping for each hop.",
+      "initThreeMessage": "The first scan may take several seconds.",
+      "target": "Target",
+      "hopNumber": "Hop",
+      "ip": "IP Address",
+      "hostname": "Hostname",
+      "status": "Status",
+      "avgResponse": "Avg Response",
+      "successfulPings": "Successful",
+      "failedPings": "Failed",
+      "reachable": "Reachable",
+      "unreachable": "Unreachable",
+      "details": "Details",
+      "close": "Close"
+    }
+  },
+  "hop": {
+    "detail": {
+      "title": "Hop Details",
+      "hopNumber": "Hop {number}",
+      "ip": "IP Address",
+      "hostname": "Hostname",
+      "status": "Status",
+      "statistics": "Statistics",
+      "pingHistory": "Ping History",
+      "chart": "Response Time Chart",
+      "table": "Ping Table",
+      "interval": "Interval",
+      "second": "Second",
+      "minute": "Minute",
+      "5min": "5 Minutes",
+      "15min": "15 Minutes",
+      "30min": "30 Minutes",
+      "hour": "Hour",
+      "2hour": "2 Hours"
+    }
+  },
+  "ping": {
+    "chart": {
+      "title": "Response Time Chart",
+      "responseTime": "Response Time (ms)",
+      "time": "Time",
+      "timeouts": "Timeouts"
+    },
+    "table": {
+      "title": "Ping Table",
+      "timestamp": "Timestamp",
+      "responseTime": "Response Time",
+      "status": "Status",
+      "successful": "Successful",
+      "timeout": "Timeout",
+      "noData": "No ping data available"
+    }
+  },
+  "status": {
+    "ready": "Ready",
+    "scanning": "Scanning...",
+    "stopped": "Stopped",
+    "completed": "Completed",
+    "error": "Error",
+    "mtrProgress": "MTR: Hop {current}/{max} - {ip}",
+    "pingProgress": "Ping: {ip}",
+    "dataImported": "MTR data imported successfully",
+    "noDataToSave": "No MTR data available to save"
+  },
+  "menu": {
+    "file": "File",
+    "save": "Save MTR",
+    "load": "Load MTR",
+    "quit": "Quit",
+    "edit": "Edit",
+    "view": "View",
+    "language": "Language",
+    "english": "English",
+    "german": "German"
+  },
+  "dialogs": {
+    "save": {
+      "title": "Save MTR Data",
+      "defaultName": "mtr-{target}-{date}.mtr",
+      "filters": "MTR Files",
+      "allFiles": "All Files",
+      "success": "MTR data saved successfully to {path}",
+      "error": "Error saving file: {error}"
+    },
+    "load": {
+      "title": "Open MTR File",
+      "filters": "MTR Files",
+      "allFiles": "All Files",
+      "success": "MTR data loaded successfully from {path}",
+      "error": "Error loading file: {error}",
+      "invalidFile": "The selected file is not a valid MTR file."
+    },
+    "noData": {
+      "title": "No Data",
+      "message": "No MTR data available to save."
+    }
+  },
+  "validation": {
+    "targetRequired": "Target is required",
+    "targetInvalid": "Please enter a valid IP address or domain",
+    "maxHopsRange": "Max hops must be between 1 and 64",
+    "timeoutRange": "Timeout must be between 1000 and 30000 ms",
+    "probesRange": "Probes per hop must be between 1 and 10"
+  },
+  "common": {
+    "back": "Back",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "load": "Load",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View"
+  }
+}
