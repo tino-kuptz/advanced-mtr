@@ -1,7 +1,7 @@
 {
   "name": "advanced-mtr",
-  "version": "1.0.0",
-  "description": "Advanced MTR Tool mit Vue.js und Electron",
+  "version": "1.1.0",
+  "description": "Advanced MTR Tool",
   "homepage": "https://github.com/tinokuptz/advanced-mtr",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -21,7 +21,7 @@
     "electron",
     "vue"
   ],
-  "author": "Tino Kuptz <tino@example.com>",
+  "author": "Tino Kuptz <tino@kup.tz>",
   "license": "MIT",
   "devDependencies": {
     "@electron/notarize": "^3.0.2",
