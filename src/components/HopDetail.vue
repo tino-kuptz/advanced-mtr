@@ -171,7 +171,7 @@ onUnmounted(() => {
 
 <style scoped>
 .hop-detail {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: white;
@@ -232,7 +232,8 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
+  max-height: 100%;
 }
 
 .view-controls {
@@ -318,8 +319,8 @@ onUnmounted(() => {
   flex: 1;
   background: #f8f9fa;
   border-radius: 8px;
-  min-height: 300px;
   overflow-y: hidden !important;
+  max-height: 100%;
 }
 
 .status-online {

@@ -215,10 +215,8 @@ const chartOptions = computed(() => {
 .ping-chart {
     width: 100%;
     height: 100%;
-    min-height: 300px;
     display: flex;
     flex-direction: column;
-    padding: 0 20px;
 }
 
 .chart-container {

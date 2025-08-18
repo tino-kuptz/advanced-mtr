@@ -30,7 +30,7 @@ const props = defineProps<Props>()
 </script>
 
 <style scoped>
-.footer { display: flex; justify-content: center; align-items: center; margin-top: 20px; }
+.footer { display: flex; justify-content: center; align-items: center; }
 .copyright { flex: 1; }
 .language-switcher { flex: 0; text-align: right; }
 a { color: black; text-decoration: none; }

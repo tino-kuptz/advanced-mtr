@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="main-wrapper">
     <div class="container">
       <!-- MTR Configuration -->
       <ScanConfig 

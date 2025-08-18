@@ -8,7 +8,7 @@
     />
 
     <!-- Main Results View -->
-    <div v-else>
+    <div class="results-wrapper" v-else>
       <h2>{{ $t('scan.results.title') }}</h2>
       
       <div v-if="mtrResults.hops.length === 0" class="no-results">
@@ -120,12 +120,6 @@ const closeDetail = () => {
   padding: 40px;
 }
 
-.results-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .hops-section {
   border-radius: 8px;
 }
@@ -191,5 +185,25 @@ const closeDetail = () => {
 
 h2 {
   padding-left: 20px;
+  flex: 0;
+}
+
+.results-wrapper {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.results-wrapper h2 {
+  flex: 0;
+}
+
+.results-wrapper .hops-section {
+  flex: 1;
+}
+
+.table-container {
+  overflow-y: auto;
 }
 </style>
