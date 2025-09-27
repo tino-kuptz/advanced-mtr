@@ -1,6 +1,6 @@
 {
   "name": "advanced-mtr",
-  "version": "1.1.3",
+  "version": "1.3.1",
   "description": "Advanced MTR Tool",
   "homepage": "https://github.com/tinokuptz/advanced-mtr",
   "main": "dist-electron/main.js",
