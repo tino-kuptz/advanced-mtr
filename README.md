@@ -30,7 +30,7 @@ npm run dev
 
 3. **Create production build**:
 ```bash
-npm run build:cross
+npm run build
 ```
 
 ## Architecture
@@ -44,8 +44,7 @@ Located in the `/electron` directory
 ### Scripts
 Currently only two relevant ones:
 - `npm run dev`: Builds Electron, starts Vite, and then opens Electron on `http://localhost:5173`
-- `npm run build`: Builds the entire application for the current architecture
-- `npm run build:cross`: Builds the entire application for all architectures
+- `npm run build`: Builds the entire application for all architectures
 
 Important note about `npm run dev` - the frontend supports hot reloading thanks to Vite, the backend doesn't. It was too much effort for me during development when the alternative for backend changes is simply CTRL+C, up arrow and Enter.
 
