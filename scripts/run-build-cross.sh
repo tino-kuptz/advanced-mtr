@@ -92,7 +92,7 @@ print_status "Building for all platforms (Cross-Compilation)..."
 
 # macOS Builds (native)
 print_status "Building for macOS (x64, arm64)..."
-if npm run dist -- --mac; then
+if npx electron-builder --mac; then
     print_success "macOS builds completed"
 else
     print_error "macOS builds failed"
@@ -101,7 +101,7 @@ fi
 
 # Windows Builds (cross-compilation)
 print_status "Building for Windows (x64, arm64)..."
-if npm run dist -- --win; then
+if npx electron-builder --win; then
     print_success "Windows builds completed"
 else
     print_error "Windows builds failed"
@@ -109,13 +109,13 @@ else
 fi
 
 # Linux Builds (cross-compilation)
-print_status "Building for Linux (x64)..."
-if npm run dist -- --linux; then
-    print_success "Linux builds completed"
-else
-    print_error "Linux builds failed"
-    exit 1
-fi
+#print_status "Building for Linux (x64)..."
+#if npx electron-builder --linux; then
+#    print_success "Linux builds completed"
+#else
+#    print_error "Linux builds failed"
+#    exit 1
+#fi
 
 # Move builds to release directory
 print_status "Moving builds to release directory..."
@@ -131,12 +131,23 @@ if [ -d "release" ]; then
     done
 fi
 
+# Clean up release directory - keep only final release files (.zip and .exe)
+print_status "Cleaning up release directory..."
+if [ -d "release" ]; then
+    # Remove all directories in release/
+    find release -maxdepth 1 -type d ! -name "release" -exec rm -rf {} + 2>/dev/null || true
+    
+    # Remove all files that are not final release files
+    find release -maxdepth 1 -type f ! \( -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -exec rm -f {} + 2>/dev/null || true
+fi
+
+
 print_success "Cross-platform build process completed!"
 print_status "Check the 'release' directory for your builds"
 print_status ""
 print_status "Available platforms:"
 print_status "  macOS: .zip files (x64, arm64)"
-print_status "  Windows: .exe files (x64, arm64)"
-print_status "  Linux: .AppImage, .deb, .rpm files (x64)"
+print_status "  Windows: .zip files (x64, arm64)"
+#print_status "  Linux: .AppImage, .deb, .rpm files (x64)"
 print_status ""
 print_warning "Note: Cross-compiled builds may require additional testing on target platforms"

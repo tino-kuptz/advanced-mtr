@@ -2,6 +2,7 @@
   "appId": "com.advancedmtr.app",
   "productName": "Advanced MTR",
   "icon": "readme/icon.png",
+  "artifactName": "advanced-mtr-${version}_${os}-${arch}.${ext}",
   "directories": {
     "output": "release"
   },
@@ -16,7 +17,11 @@
     "target": [
       {
         "target": "zip",
-        "arch": ["x64", "arm64"]
+        "arch": ["arm64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64"]
       }
     ],
     "identity": null,
@@ -26,8 +31,12 @@
     "icon": "readme/icon.ico",
     "target": [
       {
-        "target": "nsis",
-        "arch": ["x64", "arm64"]
+        "target": "portable",
+        "arch": ["arm64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
       }
     ]
   },

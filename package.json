@@ -7,8 +7,7 @@
   "scripts": {
     "dev": "NODE_ENV=development && ./scripts/run-dev.sh",
     "dev:win": "set NODE_ENV=development && powershell -ExecutionPolicy Bypass -File ./scripts/run-dev.ps1",
-    "build": "./scripts/run-build.sh",
-    "build:cross": "./scripts/run-build-cross.sh",
+    "build": "./scripts/run-build-cross.sh",
     "dist": "electron-builder",
     "build:electron": "node build.js",
     "vite": "vite"
