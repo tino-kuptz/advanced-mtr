@@ -2,7 +2,9 @@
 
 Software to perform an MTR (Matt's traceroute) and ping indivdiual hops separately.<br>Support for analyzing when exactly ping loss or interruptions occurred for individual hops. Results can also be **exported and imported as JSON**, making it easier to share with external parties for analysis 💪
 
-Runs on Windows, macOS and Linux thanks to Electron
+_Linux support is commented out in build process. In theory it should work, but I am not able to test it and I'm unwilling to release untested software._
+
+Runs on Windows and macOS thanks to Electron
 
 <img src="readme/screenshot-main.png" width="45%"></img> <img src="readme/screenshot-timeout.png" width="45%"></img> 
 <img src="readme/screenshot-minutes.png" width="45%"></img> <img src="readme/screenshot-table.png" width="45%"></img>
