@@ -31,6 +31,18 @@ npm run dev
 ```
 
 3. **Create production build**:
+set `SKIP_SIGNING=true` so you don't need to sign this application.  
+Otherwise you need to install some requirements:
+```bash
+brew install openssl
+brew install jsign
+cargo install --features smartcard apple-codesign
+```
+> [!WARNING]  
+> At the time of this writing apple-codesign does not yet support PCKS#11  
+> For building I use the [pull-request #198 by stanhu](https://github.com/indygreg/apple-platform-rs/pull/198)
+
+After installing all required things (or setting the env var), you may run
 ```bash
 npm run build
 ```

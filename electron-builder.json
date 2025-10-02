@@ -16,16 +16,16 @@
     "icon": "readme/icon.icns",
     "target": [
       {
-        "target": "zip",
+        "target": "dmg",
         "arch": ["arm64"]
       },
       {
-        "target": "zip",
+        "target": "dmg",
         "arch": ["x64"]
       }
     ],
-    "identity": null,
-    "hardenedRuntime": false
+    "hardenedRuntime": false,
+    "sign": "./scripts/sign.js"
   },
   "win": {
     "icon": "readme/icon.ico",
@@ -38,7 +38,8 @@
         "target": "portable",
         "arch": ["x64"]
       }
-    ]
+    ],
+    "sign": "./scripts/sign.js"
   },
   "linux": {
     "icon": "readme/icon.png",
@@ -54,11 +55,6 @@
     ],
     "category": "Network"
   },
-  "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true
-  },
   "afterAllArtifactBuild": "scripts/after-build.js",
-  "forceCodeSigning": false,
   "electronVersion": "27.0.0"
 }
