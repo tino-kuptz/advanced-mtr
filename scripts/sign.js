@@ -278,7 +278,7 @@ async function signWindows(configuration) {
 
     try {
         // Create temporary PKCS#11 configuration file
-        const pkcs11ConfigPath = '/tmp/pkcs11.conf';
+        const pkcs11ConfigPath = `/tmp/pkcs11-${Math.random().toString(36).substring(2, 10)}.conf`;
         const pkcs11Config = `name = OpenSC
 library = ${config.pkcs11Module}
 slot = ${config.pkcs11SlotId}`;
