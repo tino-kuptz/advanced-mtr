@@ -1,5 +1,5 @@
 {
-  "appId": "com.advancedmtr.app",
+  "appId": "de.tino-kuptz.advanced-mtr",
   "productName": "Advanced MTR",
   "icon": "readme/icon.png",
   "artifactName": "advanced-mtr-${version}_${os}-${arch}.${ext}",
