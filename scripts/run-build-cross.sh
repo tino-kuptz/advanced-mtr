@@ -138,7 +138,7 @@ if [ -d "release" ]; then
     find release -maxdepth 1 -type d ! -name "release" -exec rm -rf {} + 2>/dev/null || true
     
     # Remove all files that are not final release files
-    find release -maxdepth 1 -type f ! \( -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -exec rm -f {} + 2>/dev/null || true
+    find release -maxdepth 1 -type f ! \( -name "*.zip" -o -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -exec rm -f {} + 2>/dev/null || true
 fi
 
 
